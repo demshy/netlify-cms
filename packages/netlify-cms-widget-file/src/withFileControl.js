@@ -28,6 +28,14 @@ const ImageWrapper = styled.div`
   cursor: ${props => (props.sortable ? 'pointer' : 'auto')};
 `;
 
+const SortableImageButtonsWrapper = styled.div`
+  display: flex;
+  flex-direction: column;
+  margin-right: 20px;
+  margin-top: -10px;
+  margin-bottom: 10px;
+`
+
 const StyledImage = styled.img`
   width: 100%;
   height: 100%;
@@ -38,13 +46,30 @@ function Image(props) {
   return <StyledImage role="presentation" {...props} />;
 }
 
+function SortableImageButtons() {
+  return (
+    <SortableImageButtonsWrapper>
+      <FileWidgetButton>
+        {`Replace`}
+      </FileWidgetButton>
+      <FileWidgetButton>
+        {`Remove`}
+      </FileWidgetButton>
+    </SortableImageButtonsWrapper>
+  )
+}
+
 const SortableImage = SortableElement(({ itemValue, getAsset, field }) => {
   return (
-    <ImageWrapper sortable>
-      <Image src={getAsset(itemValue, field) || ''} />
-    </ImageWrapper>
+    <div>
+      <ImageWrapper sortable>
+        <Image src={getAsset(itemValue, field) || ''} />
+      </ImageWrapper>
+      <SortableImageButtons></SortableImageButtons>
+    </div>
   );
 });
+
 
 const SortableMultiImageWrapper = SortableContainer(({ items, getAsset, field }) => {
   return (
@@ -257,7 +282,7 @@ export default function withFileControl({ forImage } = {}) {
           <FileLinks>
             <FileLinkList>
               {value.map(val => (
-                <li key={val}>{this.renderFileLink(val)}</li>
+                <li key={val}>{this.renderFileLink(val)}aa</li>
               ))}
             </FileLinkList>
           </FileLinks>

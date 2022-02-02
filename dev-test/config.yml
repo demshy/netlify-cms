@@ -1,268 +1,1843 @@
+local_backend: true
+
 backend:
-  name: test-repo
+  name: git-gateway
+  branch: main
+  squash_merges: true
 
-site_url: https://example.com
+display_url: https://maistra-www.netlify.app
+site_url: https://maistra-www.netlify.app
+logo_url: /media/logo.svg
+media_folder: static/media
+# public_folder: /media
 
-publish_mode: editorial_workflow
-media_folder: assets/uploads
+media_library:
+  name: cloudinary
+  config:
+    # multiple: true
+    cloud_name: maistra
+    api_key: 155838815573637
 
-collections: # A list of collections the CMS should be able to edit
-  - name: 'posts' # Used in routes, ie.: /admin/collections/:slug/edit
-    label: 'Posts' # Used in the UI
-    label_singular: 'Post' # Used in the UI, ie: "New Post"
-    description: >
-      The description is a great place for tone setting, high level information, and editing
-      guidelines that are specific to a collection.
-    folder: '_posts'
-    slug: '{{year}}-{{month}}-{{day}}-{{slug}}'
-    summary: '{{title}} -- {{year}}/{{month}}/{{day}}'
-    create: true # Allow users to create new documents in this collection
-    view_filters:
-      - label: Posts With Index
-        field: title
-        pattern: 'This is post #'
-      - label: Posts Without Index
-        field: title
-        pattern: front matter post
-      - label: Drafts
-        field: draft
-        pattern: true
-    view_groups:
-      - label: Year
-        field: date
-        pattern: \d{4}
-      - label: Drafts
-        field: draft
-    fields: # The fields each document in this collection have
-      - { label: 'Title', name: 'title', widget: 'string', tagname: 'h1' }
-      - { label: 'Draft', name: 'draft', widget: 'boolean', default: false }
-      - {
-          label: 'Publish Date',
-          name: 'date',
-          widget: 'datetime',
-          date_format: 'YYYY-MM-DD',
-          time_format: 'HH:mm',
-          format: 'YYYY-MM-DD HH:mm',
-        }
-      - label: 'Cover Image'
-        name: 'image'
-        widget: 'image'
-        required: false
-        tagname: ''
+i18n:
+  structure: multiple_files
+  locales: [en, hr, de, it, sl, nl, pl]
 
-      - { label: 'Body', name: 'body', widget: 'markdown', hint: 'Main content goes here.' }
+slug:
+  encoding: ascii
+  clean_accents: true
 
-  - name: 'faq' # Used in routes, ie.: /admin/collections/:slug/edit
-    label: 'FAQ' # Used in the UI
-    folder: '_faqs'
-    create: true # Allow users to create new documents in this collection
-    fields: # The fields each document in this collection have
-      - { label: 'Question', name: 'title', widget: 'string', tagname: 'h1' }
-      - { label: 'Answer', name: 'body', widget: 'markdown' }
+# https://www.netlifycms.org/docs/configuration-options/#publish-mode
+# publish_mode: editorial_workflow
 
-  - name: 'settings'
-    label: 'Settings'
-    delete: false # Prevent users from deleting documents in this collection
+aliases:
+  - &TITLE {name: title, label: Title, widget: string, i18n: true}
+  - &LINK_TITLE {name: linkTitle, label: Link Title, widget: string, i18n: true, required: false, hint: Used when page is references as a link}
+  - &TITLE_OPT {name: title, label: Title, widget: string, i18n: true, required: false}
+  - &SLUG {name: slug, label: Slug, widget: string, i18n: true, required: false}
+  - &URL {name: url, label: URL, widget: string, i18n: true, required: false, hint: 'Recommended on all languages except English. Format: properties/property/slug. Example: smjestaj/grand-park-hotel-rovinj/wellness-i-spa. Do not use http links'}
+  - &DRAFT {name: draft, label: Draft, hint: "if enabled, page will not be visible", widget: boolean, i18n: true, required: false, default: true}
+  - &WEIGHT {name: weight, label: Weight, widget: number, required: false, i18n: duplicate}
+  - &WEIGHT_REQUIRED {name: weight, label: Weight, widget: number, default: 100, required: true, i18n: duplicate}
+  - &DATE {name: date, widget: string}
+  - &MAIN_DESCRIPTION {name: description, label: Description, hint: used on lists and as OG description, widget: text, i18n: true, required: false}
+  - &DESCRIPTION {name: description, label: Description, widget: text, i18n: true, required: false}
+  - &TEASER {name: teaser, label: Teaser, hint: appears as text with grey backgroundon list,  widget: string, i18n: true, required: false}
+  - &SUPERTITLE {name: supertitle, label: Supertitle, widget: string, i18n: true, required: false}
+  - &SUBTITLE {name: subtitle, label: Subtitle, widget: text, i18n: true, required: false}
+  - &BODY {name: body, label: Body, widget: markdown, i18n: true}
+  - &MAIN_IMAGE {name: image, label: Image, hint: used on lists and as OG image, widget: image, i18n: duplicate}
+  - &IMAGE {name: image, label: Image, widget: image, i18n: duplicate}
+  - &IMAGE_I18N {name: image, label: Image, widget: image, i18n: true}
+  - &ICON {name: icon, widget: string, hint: Work in progress, i18n: true}
+  - &ALT {name: alt, label: Alt, widget: string, i18n: true, required: false}
+  - &VISIBLE_IN_CMS {name: visibleInCMS, widget: hidden, default: true, i18n: duplicate}
+  - &BUTTON {name: button, widget: object, collapsed: true, summary: '{{fields.text}} ({{fields.href}})', i18n: true, fields: [
+      {name: text, widget: string, i18n: true, required: false},
+      {name: href, widget: string, i18n: true, required: false}
+    ]}
+  - &PHONE {name: phone, label: Phone number, widget: string, i18n: duplicate, required: false}
+  - &EMAIL {name: email, i18n: duplicate, widget: string, required: false}
+  - &PARALLAX_IMAGE {name: parallaxImage, label: Parallax image, hint: 1920x1080px, widget: image, required: false, i18n: duplicate}
+  - &PHOBS_ID {name: phobsId, label: PHOBS ID, widget: object, required: false, i18n: true, fields: [
+      {name: production, widget: string, required: false, i18n: duplicate},
+      {name: develop, widget: string, required: false, i18n: duplicate},
+    ]}
+  - &HEADER_CLASS {name: headerClass, label: Header style, widget: select, i18n: duplicate, required: false, options: [
+      {label: light, value: header--light},
+      {label: dark, value: header--dark},
+    ]}
+  - &GALLERY {name: gallery, widget: object, collapsed: true, summary: '{{fields.title}}', i18n: true, fields: [
+      *TITLE_OPT,
+      *SUBTITLE,
+      {name: items, widget: image, i18n: duplicate, hint: Select at leat 3 images, required: false, choose_url: false, media_library: {config: {multiple: true}}}
+    ]}
+  - &VIEW360 {name: view360, label: 360 view link, widget: string, i18n: duplicate, required: false}
+
+  - &HERO {name: hero, label: Hero, widget: object, collapsed: true, summary: '{{fields.slides[0].title}}', i18n: true, fields: [
+      {name: slideDuration, label: Slide duration in seconds, hint: 'default: 5', required: false, widget: number, i18n: true},
+      {name: slides, widget: list, label_singular: slide, summary: '{{fields.title}}', i18n: true, fields: [
+        *SUPERTITLE,
+        {name: title, pattern: ['^.{5,35}$', Must have 5 - 35 characters], widget: string, i18n: true},
+        {name: description, pattern: ['^.{0,200}$', Max 200 characters], widget: text, i18n: true, required: false},
+        *IMAGE_I18N,
+        {name: video, widget: file, i18n: true, required: false},
+        {name: button, widget: object, collapsed: true, summary: '{{fields.text}}', i18n: true, fields: [
+          {name: text, widget: string, i18n: true, required: false},
+          {name: href, widget: string, i18n: true, required: false},
+          {name: class, widget: string, i18n: true, required: false},
+        ]},
+      ]},
+    ]}
+
+  - &STORY {name: story, label: Story, widget: object, i18n: true, collapsed: true, summary: '{{fields.title}}', fields: [
+      *TITLE_OPT,
+      *SUBTITLE,
+      {name: description, widget: markdown, minimal: true, i18n: true, required: false},
+      {name: imageOne, label: Image one, widget: object, i18n: true, fields: [
+        {name: src, widget: image, i18n: duplicate, required: false},
+        *ALT,
+      ]},
+      {name: imageTwo, label: Image two, widget: object, i18n: true, fields: [
+        {name: src, widget: image, i18n: duplicate, required: false},
+        *ALT,
+      ]},
+      {name: logoOne, label: Logo one, widget: object, i18n: true, fields: [
+        {name: src, widget: image, i18n: duplicate, required: false},
+        *ALT,
+      ]},
+      {name: logoTwo, label: Logo two, widget: object, i18n: true, fields: [
+        {name: src, widget: image, i18n: duplicate, required: false},
+        *ALT,
+      ]},
+      {name: exposed, label: Exposed text, widget: string, i18n: true, required: false},
+    ]}
+
+  - &SERVICES {name: services, label: Services, widget: object, i18n: true, collapsed: true, summary: '{{fields.title}}', fields: [
+      {name: title, label: Title, widget: string, i18n: true, required: false},
+      # {label: Extra text, name: extraText, widget: text, i18n: true, required: false},
+      {name: relationItems, label: Items, widget: relation, collection: services, search_fields: ["title"], display_fields: ["title"], value_field: "{{slug}}", multiple: true, i18n: duplicate, required: true}, # must be required otherwise  there's a "? relationItems" in frontmatter
+      {name: items, label: Additional items, widget: list, label_singular: item, i18n: true, summary: '{{fields.item}}', field: {
+        name: item, widget: string, i18n: true
+     }},
+    ]}
+
+  - &SERVICES_UNITS_FIELDS [
+      {name: title, label: Title, widget: string, i18n: true, required: false},
+      {name: relationItems, label: Items, widget: relation, collection: services-units, search_fields: ["title"], display_fields: ["title"], value_field: "{{slug}}", multiple: true, i18n: duplicate, required: true}, # must be required otherwise  there's a "? relationItems" in frontmatter
+      {name: items, label: Additional items, widget: list, label_singular: item, i18n: true, summary: '{{fields.item}}', field: {
+        name: item, widget: string, i18n: true
+     }},
+    ]
+
+  - &LANGUAGE_FIELDS [
+      *TITLE,
+      {name: languageName, label: Language name, widget: string},
+      {name: languageCode, label: Language code, widget: hidden},
+      {name: weight, widget: number},
+      {name: params, label: Params, widget: object, fields: [
+        *DESCRIPTION,
+      ]},
+      {name: permalinks, label: Permalinks, widget: object, collapsed: true, summary: 'WARNING: changing this will change all URLs', fields: [
+        {name: properties, widget: string, required: false},
+        {name: brands, widget: string, required: false},
+        {name: destinations, widget: string, required: false},
+        {name: experiences, widget: string, required: false},
+        {name: holidays, widget: string, required: false},
+      ]},
+    ]
+
+  - &INFO_LIST_FIELDS [
+      *TITLE,
+      {name: items, label: Items, label_singular: item, widget: list, i18n: true, fields: [
+        *TITLE,
+        {name: href, widget: string, i18n: true, required: false},
+        *ICON,
+      ]},
+      *BUTTON,
+    ]
+
+  - &QUICK_INFO_FIELDS [
+      *TITLE,
+      {name: items, label: Items, widget: list, label_singular: item, i18n: true, fields: [
+        {name: text, widget: string, i18n: true},
+        {name: href, widget: string, i18n: true, required: false}
+      ]},
+    ]
+
+  - &SECTION_HEADING_FIELDS [
+      *TITLE,
+      *SUBTITLE,
+      *BUTTON,
+    ]
+
+  - &TABS {name: tabs, label: Tabs, label_singular: Tab, widget: list, fields: [
+      *TITLE,
+      {name: content, label: Content, widget: markdown},
+    ]}
+
+  - &NEWS {name: news, label: News, widget: object, collapsed: true, summary: '{{fields.heading.title}}', fields: [
+      {name: heading, widget: object, fields: *SECTION_HEADING_FIELDS},
+      {name: items, widget: list, label_singular: item, fields: [
+        *TITLE,
+        *IMAGE,
+        *ALT,
+        *DESCRIPTION,
+        {label: Brand, name: brand, widget: relation, collection: brands, search_fields: ["title"], display_fields: ["title"], value_field: "{{slug}}", i18n: duplicate},
+        {name: property, widget: string},
+        {name: stars, widget: number, min: 1, max: 5},
+        *BUTTON,
+      ]},
+    ]}
+
+  - &TABS_SIDE_CARD {name: tabs, label: Tabs, label_singular: Tab, widget: list, fields: [
+      *TITLE,
+      {name: content, label: Content, widget: object, fields: [
+        *TITLE,
+        *DESCRIPTION,
+        *IMAGE_I18N,
+        *ALT
+      ]}
+    ]}
+
+  - &SUBPAGE_BANNER {name: subpageBanner, label: Subpage Banner, i18n: true, widget: object, fields: [
+      *TITLE,
+      {name: firstImage, label: First image, i18n: true, widget: object, fields: [
+        *IMAGE,
+        *ALT,
+      ]},
+      {name: secondImage, label: Second image, i18n: true, widget: object, fields: [
+        *IMAGE,
+        *ALT,
+      ]},
+      *BUTTON,
+    ]}
+
+  - &INFORMATION {name: information, label: Information, widget: object, collapsed: true, summary: '{{fields.sectionHeading.title}}', i18n: true, fields: [
+      {name: sectionHeading, label: Heading, widget: object, i18n: true, fields: *SECTION_HEADING_FIELDS},
+      {name: reservation, label: Reservations, widget: object, collapsed: true, summary: '{{fields.title}}', i18n: true, fields: [
+        *PHONE,
+        *EMAIL,
+      ]},
+      {name: distances, label_singular: distance, widget: list, i18n: true, fields: [
+        {name: location, widget: string, i18n: true},
+        {name: distance, widget: string, i18n: true},
+      ]},
+      {name: reachUs, label: How To Reach Us, widget: list, label_singular: item, i18n: true, fields: [
+        {name: city, widget: string, i18n: true},
+        {name: distance, widget: number, min: 0, i18n: true},
+        {name: time, widget: string, i18n: true}
+      ]},
+      {name: lat, label: Latitude, widget: number, value_type: float, i18n: duplicate},
+      {name: lng, label: Longitude, widget: number, value_type: float, i18n: duplicate},
+    ]}
+
+  - &FAQ_FIELDS [
+      *TITLE,
+      *DESCRIPTION,
+      {name: descriptionHtml, label: Description displayed - can include HTML tags, widget: text, i18n: true, required: false},
+    ]
+
+  - &BRANDS_FIELDS [
+      *TITLE,
+      *DRAFT,
+      *URL,
+      *MAIN_DESCRIPTION,
+      *MAIN_IMAGE,
+      *HEADER_CLASS,
+      *HERO,
+      *STORY,
+      {name: brandsHeading, label: Brands heading, widget: object, collapsed: true, summary: '{{fields.title}}', fields: *SECTION_HEADING_FIELDS},
+      {name: otherBrands, label: Other Brands, widget: object, collapsed: true, summary: '{{fields.heading.title}}', fields: [
+        {name: heading, widget: object, fields: *SECTION_HEADING_FIELDS},
+        {name: items, widget: relation, collection: properties, search_fields: ["title"], display_fields: ["title", "destination", "brand"], value_field: "{{slug}}", i18n: duplicate, multiple: true},
+      ]},
+      *NEWS,
+      {name: destinationsHeading, label: Destiantions heading, widget: object, collapsed: true, summary: '{{fields.title}}', fields: *SECTION_HEADING_FIELDS},
+      *PARALLAX_IMAGE,
+      # {name: eventsHeading, label: Events heading, widget: object, collapsed: true, summary: '{{fields.title}}', fields: *SECTION_HEADING_FIELDS},
+      {name: experiencesHeading, label: Experiences heading, widget: object, collapsed: true, summary: '{{fields.title}}', fields: *SECTION_HEADING_FIELDS},
+    ]
+
+  - &NEWSLETTER_FIELDS [
+      *TITLE,
+      *DESCRIPTION,
+      *URL,
+      *IMAGE
+    ]
+
+  - &CONTACT_FIELDS [
+      *TITLE,
+      *DESCRIPTION,
+      *HERO,
+      *URL,
+      {name: notice, label: Notice, i18n: true, widget: object, fields: [
+        *TITLE,
+        *DESCRIPTION,
+      ]},
+      {name: reservations, label: Reservations, i18n: true, widget: object, fields: [
+        *TITLE,
+        *DESCRIPTION,
+        *PHONE,
+        {name: days, label: Days to call, widget: string, i18n: true, required: false},
+        *EMAIL,
+        {name: fax, label: Fax number, widget: string, i18n: duplicate, required: false},
+        {name: address, label: Address to write us, widget: string, i18n: true, required: false}
+      ]},
+      {name: formTitle, label: Form title, widget: string, i18n: true, required: false},
+      {name: formSubtitle, label: Form subtitle text, widget: string, i18n: true, required: false},
+      {name: faq, label: FAQ, widget: object, i18n: true, fields: [
+        *TITLE,
+        {name: showAllLabel, label: Show all FAQ - label, widget: string, i18n: true, required: false},
+        {name: showAllLink, label: Show all FAQ - link, widget: string, i18n: true, required: false},
+      ]},
+      {name: allContacts, label: All Maistra contacts, widget: object, i18n: true, fields: [
+        *TITLE,
+        {name: accordionTitle, label: Accordion title, widget: string, i18n: true, required: false},
+        {name: content, widget: markdown, minimal: true, i18n: true},
+      ]},
+    ]
+
+  - &HOME_FIELDS [
+      *HERO,
+      {name: quickInfo, label: Quick Info, widget: object, collapsed: true, summary: '{{fields.title}}', i18n: true, fields: *QUICK_INFO_FIELDS},
+      {name: specialOffers, label: Special Offers, widget: object, collapsed: true, summary: '{{fields.title}}', i18n: true, fields: *SECTION_HEADING_FIELDS},
+      {name: infoListCovid, label: Covid Info List, widget: object, collapsed: true, summary: '{{fields.title}}', fields: *INFO_LIST_FIELDS},
+      {name: brands, label: Brands, widget: object, collapsed: true, summary: '{{fields.title}}', 18n: true, fields: [
+        *SUPERTITLE,
+        *TITLE,
+        *DESCRIPTION,
+        {name: topImage, label: Top Image, widget: object, collapsed: true, summary: '{{fields.src}}', i18n: true, fields: [
+          {name: src, widget: image, i18n: true},
+          *ALT,
+        ]},
+        {name: bottomImage, label: Bottom Image, widget: object, collapsed: true, summary: '{{fields.src}}', i18n: true, fields: [
+          {name: src, widget: image, i18n: true},
+          *ALT,
+        ]},
+      ]},
+      {name: destinations, label: Destinations, widget: object, collapsed: true, summary: '{{fields.title}}', i18n: true, fields: *SECTION_HEADING_FIELDS},
+      {name: infoListToh, label:  Holidays Info List, widget: object, collapsed: true, summary: '{{fields.title}}', i18n: true, fields: *INFO_LIST_FIELDS},
+      {name: experiences, label: Experiences, widget: object, collapsed: true, summary: '{{fields.title}}', i18n: true, fields: *SECTION_HEADING_FIELDS},
+    ]
+
+  - &HOLIDAYS_FIELDS [
+      *TITLE,
+      *SLUG,
+      *DRAFT,
+      *MAIN_DESCRIPTION,
+      *MAIN_IMAGE,
+      *HERO,
+      {name: heading, label: Top heading, widget: object, collapsed: true, summary: '{{fields.title}}', i18n: true, fields: *SECTION_HEADING_FIELDS},
+      {name: experiences, label: Experiences heading, widget: object, collapsed: true, summary: '{{fields.title}}', i18n: true, fields: *SECTION_HEADING_FIELDS},
+    ]
+
+  - &LOYALTY_FIELDS [
+      *TITLE,
+      *SLUG,
+      *DRAFT,
+      *HERO,
+      *STORY,
+      {name: advantages, widget: list, collapsed: true, fields: [
+        {name: title, widget: string},
+        {name: description, widget: string},
+      ]},
+      {name: howItWorks, label: How it works, widget: object, collapsed: true, summary: '{{fields.sectionHeading.title}}', fields: [
+        {name: sectionHeading, label: Heading, widget: object, fields: *SECTION_HEADING_FIELDS},
+        {name: items, widget: list, collapsed: true, fields: [
+          *IMAGE,
+          *TITLE,
+          {name: description, label: Description, widget: markdown, required: false},
+      ]},
+      ]},
+      {name: aboutMembership, label: About membership, widget: object, collapsed: true, fields: [
+        {name: sectionHeading, label: Section Heading, widget: object, fields: *SECTION_HEADING_FIELDS},
+        *BUTTON,
+      ]},
+      {name: headingRewards, label: Rewards heading, widget: object, collapsed: true, summary: '{{fields.title}}', fields: *SECTION_HEADING_FIELDS},
+      {name: loyaltyBanner, label: Loyalty banner, widget: object, collapsed: true, summary: '{{fields.title}}', fields: [
+        *IMAGE,
+        *TITLE,
+        *DESCRIPTION,
+        *BUTTON,
+      ]},
+      {name: faq, widget: list, collapsed: true, fields: [
+        {name: title, label: Question, widget: string},
+        {name: content, label: Answer, widget: string},
+      ]},
+    ]
+
+  - &LOYALTY_LEVELS_FIELDS [
+      *TITLE,
+      *SLUG,
+      *DRAFT,
+      *MAIN_IMAGE,
+      *MAIN_DESCRIPTION,
+      {name: maistarRewardsLogo, label: Maistar rewards logo, widget: image},
+      {name: maistarRebornImage, label: Maistar reborn image, widget: image},
+      {name: sectionHeading, label: Section heading, widget: object, collapsed: true, summary: '{{fields.title}}', fields: *SECTION_HEADING_FIELDS},
+      {name: layout, widget: hidden, default: levels-list},
+      {name: table, widget: object, collapsed: true, summary: '{{fields.title}}', fields: [
+        *TITLE,
+        {name: nights, widget: string},
+        {name: cost, widget: string},
+        {name: roomRate, widget: string},
+        {name: extras, widget: string},
+        {name: smallText, widget: text},
+      ]},
+    ]
+
+  - &DESTINATIONS_FIELDS [
+      *TITLE,
+      *SLUG,
+      *DRAFT,
+      *MAIN_IMAGE,
+      *MAIN_DESCRIPTION,
+      *HERO,
+      {name: intro, widget: object, fields: [
+        {name: title, widget: string},
+        {name: text, widget: text},
+      ]},
+      {name: experiencesHeading, label: Experiences heading, widget: object, collapsed: true, summary: '{{fields.title}}', fields: *SECTION_HEADING_FIELDS},
+    ]
+
+  - &TRANSLATION_FIELDS [
+      {name: call, widget: object, summary: '{{fields.other}}', fields: [
+        {name: other, widget: string}
+      ]},
+      {name: search, widget: object, summary: '{{fields.other}}', fields: [
+        {name: other, widget: string}
+      ]},
+      {name: login, widget: object, summary: '{{fields.other}}', fields: [
+        {name: other, widget: string}
+      ]},
+      {name: open-menu, widget: object, summary: '{{fields.other}}', fields: [
+        {name: other, widget: string}
+      ]},
+      {name: check-rates, widget: object, summary: '{{fields.other}}', fields: [
+        {name: other, widget: string}
+      ]},
+      {name: scroll-down, widget: object, summary: '{{fields.other}}', fields: [
+        {name: other, widget: string}
+      ]},
+      {name: read-more, widget: object, summary: '{{fields.other}}', fields: [
+        {name: other, widget: string}
+      ]},
+      {name: book-now, widget: object, summary: '{{fields.other}}', fields: [
+        {name: other, widget: string}
+      ]},
+      {name: discover-more, widget: object, summary: '{{fields.other}}', fields: [
+        {name: other, widget: string}
+      ]},
+      {name: view-all, widget: object, summary: '{{fields.other}}', fields: [
+        {name: other, widget: string}
+      ]},
+      {name: from, widget: object, summary: '{{fields.other}}', fields: [
+        {name: other, widget: string}
+      ]},
+      {name: view-gallery, widget: object, summary: '{{fields.other}}', fields: [
+        {name: other, widget: string}
+      ]},
+      {name: show-more, widget: object, summary: '{{fields.other}}', fields: [
+        {name: other, widget: string}
+      ]},
+      {name: room-details, widget: object, summary: '{{fields.other}}', fields: [
+        {name: other, widget: string}
+      ]},
+      {name: open-gallery, widget: object, summary: '{{fields.other}}', fields: [
+        {name: other, widget: string}
+      ]},
+      {name: reservations, widget: object, summary: '{{fields.other}}', fields: [
+        {name: other, widget: string}
+      ]},
+      {name: opening-hours, widget: object, summary: '{{fields.other}}', fields: [
+        {name: other, widget: string}
+      ]},
+      {name: download-menu, widget: object, summary: '{{fields.other}}', fields: [
+        {name: other, widget: string}
+      ]},
+      {name: next, widget: object, summary: '{{fields.other}}', fields: [
+        {name: other, widget: string}
+      ]},
+      {name: get-direction, widget: object, summary: '{{fields.other}}', fields: [
+        {name: other, widget: string}
+      ]},
+      {name: gallery, widget: object, summary: '{{fields.other}}', fields: [
+        {name: other, widget: string}
+      ]},
+      {name: rooms-suites, widget: object, summary: '{{fields.other}}', fields: [
+        {name: other, widget: string}
+      ]},
+      {name: parcels-mobile-homes, widget: object, summary: '{{fields.other}}', fields: [
+        {name: other, widget: string}
+      ]},
+      {name: let-us-inspire-you, widget: object, summary: '{{fields.other}}', fields: [
+        {name: other, widget: string}
+      ]},
+      {name: results, widget: object, summary: '{{fields.other}}', fields: [
+        {name: other, widget: string}
+      ]},
+      {name: load-more-results, widget: object, summary: '{{fields.other}}', fields: [
+        {name: other, widget: string}
+      ]},
+      {name: services-amenities, widget: object, summary: '{{fields.other}}', fields: [
+        {name: other, widget: string}
+      ]},
+      {name: 360-view, widget: object, summary: '{{fields.other}}', fields: [
+        {name: other, widget: string}
+      ]},
+      {name: location, widget: object, summary: '{{fields.other}}', fields: [
+        {name: other, widget: string}
+      ]},
+      {name: how-to-reach-us, widget: object, summary: '{{fields.other}}', fields: [
+        {name: other, widget: string}
+      ]},
+      {name: distance, widget: object, summary: '{{fields.other}}', fields: [
+        {name: other, widget: string}
+      ]},
+      {name: airport, widget: object, summary: '{{fields.other}}', fields: [
+        {name: other, widget: string}
+      ]},
+      {name: travel-time, widget: object, summary: '{{fields.other}}', fields: [
+        {name: other, widget: string}
+      ]},
+    ]
+
+  - &EXPERIENCES_FIELDS [
+    *TITLE,
+    *SLUG,
+    *URL,
+    *DRAFT,
+    *MAIN_DESCRIPTION,
+    *MAIN_IMAGE,
+    *HEADER_CLASS,
+    *HERO,
+    {name: topHeading, label: Top heading, widget: object, collapsed: true, summary: '{{fields.title}}', i18n: true, fields: [
+      {name: title, widget: string},
+      {name: subtitle, widget: text},
+    ]},
+    {name: ideasEventsHeading, label: Ideas & events heading, widget: object, collapsed: true, summary: '{{fields.title}}', i18n: true, fields: [
+      {name: title, widget: string},
+      {name: subtitle, widget: text},
+    ]},
+    {name: travelIdeasHeading, label: Travel ideas heading, widget: object, collapsed: true, summary: '{{fields.title}}', i18n: true, fields: *SECTION_HEADING_FIELDS},
+    {name: eventsHeading, label: Events heading, widget: object, collapsed: true, summary: '{{fields.title}}', i18n: true, fields: *SECTION_HEADING_FIELDS},
+    {name: specialOffersHeading, label: Special Offers heading, widget: object, collapsed: true, summary: '{{fields.title}}', i18n: true, fields: *SECTION_HEADING_FIELDS},
+  ]
+
+  - &PRESS_FIELDS [
+    *TITLE,
+    *SLUG,
+    *URL,
+    *DRAFT,
+    *MAIN_DESCRIPTION,
+    *MAIN_IMAGE,
+    *HEADER_CLASS,
+    *HERO,
+    {name: latestNews, label: Latest news heading, widget: object, i18n: true, fields: *SECTION_HEADING_FIELDS},
+    {name: links, widget: list, collapsed: true, i18n: true, fields: [
+      {name: Title, widget: string, i18n: true},
+      {name: RelPermalink, label: Card href, widget: string, i18n: true},
+      {name: Params, widget: object, collapsed: true, summary: '{{fields.image}}', i18n: true, fields: [
+        {name: image, label: Image, widget: image, i18n: true},
+      ]}
+    ]},
+  ]
+
+  - &PRESS_NEWS_FIELDS [
+    *TITLE,
+    *SLUG,
+    *DRAFT,
+    *IMAGE,
+    *DESCRIPTION,
+  ]
+
+  - &PRESS_BROCHURES_FIELDS [
+    *TITLE,
+    *SLUG,
+    *DRAFT,
+    *IMAGE,
+    *DESCRIPTION,
+    {name: pdfs, label: PDFs, widget: list, i18n: true, fields: [
+      {name: title, label: Title, widget: string, i18n: true},
+      {name: items, label: Items, widget: list, i18n: true,
+      fields: [
+        {name: text, widget: string, i18n: true},
+        {name: href, widget: file, i18n: true},
+      ]},
+    ]},
+  ]
+
+  - &COMPANY_FIELDS [
+    *HERO,
+    *STORY,
+    {name: relatedLinks, label: Related links, widget: list, i18n: true, fields: [
+      {name: Title, label: Title, widget: string, i18n: true},
+      {name: Params, widget: object, collapsed: true, summary: '{{fields.image}}', fields: [
+        {name: image, label: Image, widget: image},
+      ]},
+      {name: RelPermaLink, label: Related links href, widget: string},
+    ]},
+    {name: opportunities, label: Opportunities, widget: list, i18n: true, fields: [
+      *TITLE,
+      *IMAGE,
+      *DESCRIPTION,
+    ]},
+  ]
+
+  - &PRESS_PR_CONTACT_FIELDS [
+    *TITLE,
+    *IMAGE,
+    *URL,
+    *DESCRIPTION,
+    *BODY,
+  ]
+
+  - &MICE_FIELDS [
+    *TITLE,
+    *SLUG,
+    *HERO,
+    {name: sectionHeading, label: Heading, widget: object, i18n: true, fields: *SECTION_HEADING_FIELDS},
+  ]
+
+  - &MICE_CONFERENCE_HALLS_FIELDS [
+    *TITLE,
+    *IMAGE,
+    *SLUG,
+    *HERO,
+    *DESCRIPTION,
+  ]
+
+  - &MICE_WEDDINGS_FIELDS [
+    *TITLE,
+    *IMAGE,
+    *SLUG,
+    *DESCRIPTION,
+    *BUTTON,
+    *BODY,
+    *GALLERY,
+    {name: propertiesTitle, label: Properties title, widget: string},
+    {name: properties, widget: relation, collection: properties, search_fields: ["title"], display_fields: ["title", "destination", "brand"], value_field: "{{slug}}", i18n: duplicate, multiple: true},
+  ]
+
+  - &MICE_FOOD_BEVERAGES_FIELDS [
+    *TITLE,
+    *IMAGE,
+    *SLUG,
+    *DESCRIPTION,
+    *BODY,
+  ]
+
+  - &PRESS_WEB_ALBUMS_FIELDS [
+    *TITLE,
+    *IMAGE,
+    *URL,
+    *DESCRIPTION,
+    {name: form, label: Form, widget: object, fields: [
+      {name: email, label: Email, widget: string},
+      {name: firstName, label: First name, widget: string},
+      {name: lastName, label: Last name, widget: string},
+      {name: company, label: Company, widget: string},
+      {name: requestAccess, label: Request access, widget: string},
+    ]},
+    {name: existingAccess, label: Existing access, widget: object, fields: [
+      *DESCRIPTION,
+      *BUTTON,
+    ]},
+  ]
+
+  - &B2B_GROUPS_FIELDS [
+    *TITLE,
+    *IMAGE,
+    *URL,
+    *DESCRIPTION,
+    *BODY,
+    {name: interestProgrammes, label: Interest programmes, widget: list, fields: [
+      *TITLE,
+      *DESCRIPTION,
+      *IMAGE,
+      *BUTTON,
+    ]},
+    {name: contact, label: Contact, widget: object, fields: [
+      {name: locations, label: Locations, widget: list, i18n: true, fields: [
+        *TITLE,
+        {name: address, label: Address, widget: string, i18n: true},
+        {name: phone, label: Phone, widget: list, i18n: true},
+        {name: email, label: Email, widget: string, i18n: true},
+      ]},
+      {name: menus, widget: object, i18n: true, fields: [
+        *TITLE_OPT,
+        {name: content, i18n: true, widget: text, required: false},
+        {name: files, widget: list, label_singular: file, summary: '{{fields.name}}', i18n: true, fields: [
+          {name: name, i18n: true, widget: string, required: false},
+          {name: source, i18n: true, widget: file, required: false},
+        ]},
+      ]},
+    ]},
+    {name: formFields, label: Form fields, widget: object, fields: [
+      {name: section1Title, label: Section title, widget: string},
+      {name: firstName, label: First name, widget: string},
+      {name: lastName, label: Last name, widget: string},
+      {name: email, label: Email, widget: string},
+      {name: subject, label: Subject, widget: string},
+      {name: message, label: Message, widget: string},
+      {name: sendButton, label: Button, widget: string},
+      {name: requiredFields, label: Required fields, widget: string},
+    ]},
+  ]
+
+  - &LEGAL_NOTICE_FIELDS [
+    *TITLE,
+    *SLUG,
+    *DESCRIPTION,
+    *BODY,
+  ]
+
+  - &PRIVACY_POLICY_FIELDS [
+    *TITLE,
+    *SLUG,
+    *DESCRIPTION,
+    *BODY,
+  ]
+
+  - &COOKIE_POLICY_FIELDS [
+    *TITLE,
+    *SLUG,
+    *DESCRIPTION,
+    *BODY,
+  ]
+
+collections:
+  - name: properties
+    label: Property groups
+    label_singular: property group
+    folder: content/properties
+    path: '{{slug}}/_index'
+    preview_path: '/properties/{{title}}'
+    create: true
+    i18n: true
+    description: Property landing pages.
+    filter: {field: visibleInCMS, value: true}
+    sortable_fields: ['title', 'destination', 'brand']
+    view_groups: [
+      {label: Destination, field: destination},
+      {label: Brand, field: brand},
+      {label: Stars, field: stars},
+    ]
+    summary: "{{title}} - {{destination}} - {{brand}} - stars: {{stars}}"
+    editor:
+      preview: false
+    fields: [
+      *TITLE,
+      *SLUG,
+      *DRAFT,
+      # *WEIGHT,
+      *VISIBLE_IN_CMS,
+      {name: stars, Label: Stars, widget: number, value_type: int, min: 1, max: 5, i18n: duplicate},
+      {label: Destination, name: destination, widget: relation, collection: destinations, search_fields: ["title"], display_fields: ["title"], value_field: "{{slug}}", i18n: duplicate},
+      {label: Brand, name: brand, widget: relation, collection: brands, search_fields: ["title"], display_fields: ["title"], value_field: "brand", i18n: duplicate},
+      {name: isPropertyGroup, label: Is property group, i18n: duplicate, widget: boolean, required: false, hint: check if it has multiple properties in PHOBS},
+      {label: Menu Group, name: menuGroup, widget: select, i18n: duplicate, required: true, options: [
+        {label: Hotels, value: hotels},
+        {label: Resorts, value: resorts},
+        {label: Campsites, value: camping},
+      ]},
+      *MAIN_DESCRIPTION,
+      *MAIN_IMAGE,
+      # {name: categories, label_singular: category, widget: list, i18n: true, field: {
+      #   name: string, widget: string, i18n: true
+      #}},
+      *HEADER_CLASS,
+      *HERO,
+      *PARALLAX_IMAGE,
+      {name: quickInfo, label: Quick Info, widget: object, collapsed: true, summary: '{{fields.title}}', i18n: true, fields: *QUICK_INFO_FIELDS},
+      {label: About, name: about, widget: object, collapsed: true, i18n: true, fields: [
+        *SUPERTITLE,
+        *DESCRIPTION,
+        {name: buttons, label_singular: button, widget: list, max: 3, i18n: true, fields: [
+          {name: text, widget: string, i18n: true},
+          {name: href, widget: string, i18n: true},
+          *ICON,
+        ]},
+        {name: logos, label_singular: logo, widget: list, max: 3, i18n: true, fields: [
+          *IMAGE_I18N,
+          *ALT,
+        ]},
+        {name: info, widget: markdown, minimal: true, i18n: true},
+      ]},
+      *SERVICES,
+      {name: specialOffers, label: Special Offers, collapsed: true, summary: '{{fields.title}}', widget: object, i18n: true, fields: *SECTION_HEADING_FIELDS},
+      {name: units, label: Units, widget: object, i18n: true, collapsed: true, summary: '{{fields.sectionHeading.title}}', fields: [
+        {name: sectionHeading, label: Heading, widget: object, i18n: true, fields: *SECTION_HEADING_FIELDS},
+        {name: unitCards, label: Banners, label_singular: banner, widget: list, i18n: true, fields: [
+          *TITLE,
+          *DESCRIPTION,
+          *IMAGE_I18N,
+          {name: price, widget: string},
+          *BUTTON,
+        ]},
+      ]},
+      *GALLERY,
+      {name: moreLinks, label: More buttons, widget: object, i18n: true, collapsed: true, fields: [
+        {name: title, widget: string, i18n: true, required: false},
+        {name: buttons, label_singular: button, widget: list, i18n: true, fields: [
+          {name: text, widget: string, i18n: true, required: false},
+          {name: href, widget: string, i18n: true, required: false},
+          *ICON,
+        ]},
+      ]},
+      {name: inspiration, label: Inspiration, widget: object, i18n: true, collapsed: true, summary: 'Let Us Inspire You', fields: [
+        *SUBTITLE,
+        *BUTTON,
+      ]},
+      *INFORMATION,
+      {name: awards, label: Awards, widget: object, i18n: true, collapsed: true, summary: '{{fields.sectionHeading.title}}', fields: [
+        {name: sectionHeading, label: Heading, widget: object, i18n: true, fields: *SECTION_HEADING_FIELDS},
+        {name: items, label_singular: item, widget: list, i18n: true, fields: [
+          {name: alt, widget: string, i18n: true},
+          {name: src, widget: image, i18n: true},
+        ]},
+      ]},
+      {name: related, label: Related, widget: object, i18n: true, summary: '{{fields.sectionHeading.title}}', collapsed: true, fields: [
+        {name: sectionHeading, label: Heading, widget: object, i18n: true, fields: *SECTION_HEADING_FIELDS},
+        {name: items, widget: relation, collection: properties, search_fields: ["title"], display_fields: ["title", "destination", "brand"], value_field: "{{slug}}", i18n: duplicate, multiple: true},
+      ]},
+      *PHOBS_ID,
+    ]
+
+  - name: property-units
+    label: Properties (Unit lists)
+    label_singular: property unit list
+    folder: content/properties
+    path: '{{slug}}/_index'
+    preview_path: '/properties/{{dirname}}/{{title}}'
+    # create: true
+    i18n: true
+    filter: {field: layout, value: units}
+    sortable_fields: []
+    summary: "{{dirname}} - {{title}}"
+    description: Units list pages for each property.
+    editor:
+      preview: false
+    fields: [
+      *TITLE,
+      *LINK_TITLE,
+      *URL,
+      *DRAFT,
+      *WEIGHT_REQUIRED,
+      *MAIN_DESCRIPTION,
+      *MAIN_IMAGE,
+      {label: Property type, name: propertyType, widget: select, i18n: duplicate, required: false, hint: select only if property group (eg. Camp Amarin) has many properties (eg. Pitches, Mobile Homes), options: [
+        {value: pitches, label: Pitches},
+        {value: mobile-homes, label: Mobile homes},
+        {value: glamping, label: Glamping},
+      ]},
+      {name: services, label: Services, widget: object, i18n: true, collapsed: true, summary: '{{fields.title}}', fields: *SERVICES_UNITS_FIELDS},
+      {name: moreServices, label: More Services, widget: object, i18n: true, collapsed: true, summary: '{{fields.title}}', fields: *SERVICES_UNITS_FIELDS},
+      *SUBPAGE_BANNER,
+      {name: layout, widget: hidden, default: units, i18n: duplicate},
+    ]
+
+  - name: property-restaurants
+    label: Property Restaurant lists
+    label_singular: property restaurant list
+    folder: content/properties
+    path: '{{slug}}/_index'
+    preview_path: '/properties/{{dirname}}/{{title}}'
+    # create: true
+    i18n: true
+    description: Restaurants & bars list pages for each property.
+    filter: {field: layout, value: restaurants}
+    sortable_fields: []
+    summary: "{{dirname}} - {{title}}"
+    editor:
+      preview: false
+    fields: [
+      *TITLE,
+      *URL,
+      *DRAFT,
+      *WEIGHT_REQUIRED,
+      *MAIN_DESCRIPTION,
+      *MAIN_IMAGE,
+      {name: sliderHeading, label: Slider Heading, widget: object, summary: '{{fields.title}}', i18n: true, fields: *SECTION_HEADING_FIELDS},
+      *PARALLAX_IMAGE,
+      {name: secondHeading, label: Second Heading, widget: object, summary: '{{fields.title}}', i18n: true, fields: *SECTION_HEADING_FIELDS},
+      *SUBPAGE_BANNER,
+      {name: layout, widget: hidden, default: restaurants, i18n: duplicate},
+    ]
+
+  - name: property-subpages
+    label: Property Subpages
+    label_singular: property subpage
+    folder: content/properties
+    path: '{{slug}}/_index'
+    preview_path: '/properties/{{dirname}}/{{title}}'
+    # create: true
+    i18n: true
+    description: Subpages for each property (except units and restaurants lists).
+    filter: {field: cmsPropertySubpage, value: true}
+    sortable_fields: []
+    summary: "{{title}} - {{dirname}}"
+    editor:
+      preview: false
+    fields: [
+      *TITLE,
+      *URL,
+      *DRAFT,
+      *MAIN_DESCRIPTION,
+      *MAIN_IMAGE,
+      *WEIGHT_REQUIRED,
+      *BODY,
+      *SUBPAGE_BANNER,
+      {name: cmsPropertySubpage, widget: hidden, default: true, i18n: duplicate},
+    ]
+
+  - name: units
+    label: Units
+    label_singular: unit
+    folder: content/units
+    create: true
+    i18n: true
+    description: Individual units - rooms, suites, parcels, mobile homes.
+    filter: {field: visibleInCMS, value: true}
+    sortable_fields: ['title', 'properties', 'weight']
+    view_groups: [{label: Property, field: 'properties[0]'}]
+    summary: "{{title}} - {{properties[0]}} - {{weight}}"
+    editor:
+      preview: false
+    fields: [
+      *TITLE,
+      *SLUG,
+      *DRAFT,
+      *WEIGHT,
+      *MAIN_DESCRIPTION,
+      *MAIN_IMAGE,
+      *VIEW360,
+      {label: Property group, name: properties, widget: relation, collection: properties, search_fields: ["title"], display_fields: ["title"], value_field: "{{slug}}", i18n: duplicate, multiple: true},
+      {label: Property, name: subProperty, widget: select, i18n: duplicate, required: false, hint: select only if property group (eg. Camp Amarin) has many properties (eg. Pitches, Mobile Homes), options: [
+        {value: pitches, label: Pitches},
+        {value: mobile-homes, label: Mobile homes},
+        {value: glamping, label: Glamping},
+      ]},
+      {name: area, i18n: duplicate, widget: number, hint: Square meters},
+      *GALLERY,
+      {name: services, label: Services, widget: object, i18n: true, collapsed: true, summary: '{{fields.title}}', fields: *SERVICES_UNITS_FIELDS},
+      {name: unitId, label: Unit ID, widget: string, required: false, i18n: duplicate},
+      *VISIBLE_IN_CMS,
+    ]
+
+  - name: restaurants
+    label: Restaurants
+    label_singular: restaurant
+    folder: content/restaurants
+    create: true
+    i18n: true
+    description: Individual restaursnts and bars.
+    filter: {field: visibleInCMS, value: true}
+    sortable_fields: ['title', 'properties', 'weight']
+    view_groups: [{label: Property, field: 'properties[0]'}]
+    summary: "{{title}} - {{properties[0]}} - {{weight}}"
+    editor:
+      preview: false
+    fields: [
+      *TITLE,
+      *SLUG,
+      *DRAFT,
+      *WEIGHT,
+      *MAIN_DESCRIPTION,
+      *MAIN_IMAGE,
+      {label: Property, name: properties, widget: relation, collection: properties, search_fields: ["title"], display_fields: ["title"], value_field: "{{slug}}", i18n: duplicate, multiple: true},
+      *VISIBLE_IN_CMS,
+      *GALLERY,
+      *STORY,
+      {name: contact, label: Contact, widget: object, i18n: true, fields: [
+        {name: reservations, label: Reservations, i18n: true, widget: object, fields: [
+          *PHONE,
+          *EMAIL,
+          {name: openingHours, label: Opening hours, widget: list, i18n: true, fields: [
+            {name: left, i18n: true, widget: string, required: false},
+            {name: right, i18n: true, widget: string, required: false}
+          ]},
+        ]},
+        {name: menus, widget: object, i18n: true, fields: [
+          *TITLE_OPT,
+          {name: content, i18n: true, widget: text, required: false},
+          {name: files, widget: list, label_singular: file, summary: '{{fields.name}}', i18n: true, fields: [
+            {name: name, i18n: true, widget: string, required: false},
+            {name: source, i18n: true, widget: file, required: false},
+          ]},
+        ]},
+      ]},
+      {name: showOnSecondList, label: Show on second list, i18n: duplicate, widget: boolean, required: false},
+    ]
+
+  - name: brands
+    label: Brands
+    label_singular: brands
+    folder: content/brands
+    create: true
+    i18n: true
+    filter: {field: visibleInCMS, value: true}
+    editor:
+      preview: false
+    fields: [
+      *TITLE,
+      *SLUG,
+      *DRAFT,
+      *WEIGHT,
+      *DESCRIPTION,
+      *IMAGE,
+      {name: hero, widget: object, i18n: true, fields: [
+        *TITLE,
+        *IMAGE,
+      ]},
+      {name: subhero, widget: object, i18n: true, fields: [
+        *TITLE,
+        *IMAGE,
+      ]},
+      {name: definitionHeading, label: Definition Heading, widget: object, collapsed: true, summary: '{{fields.title}}', i18n: true, fields: *SECTION_HEADING_FIELDS},
+      {name: masonry, widget: object, collapsed: true, i18n: true, fields: [
+        {name: items, widget: list, label_singular: item, i18n: true, fields: [
+          {name: title, i18n: true, widget: text, required: false},
+          {name: image, i18n: true, widget: image, required: false},
+          {name: video, i18n: true, widget: file, required: false},
+          {name: alt, i18n: true, widget: string, required: false},
+        ]},
+      ]},
+      *TABS_SIDE_CARD,
+      *NEWS,
+      *GALLERY,
+      {name: properties, widget: object, collapsed: true, summary: '{{fields.heading.title}}', i18n: true, fields: [
+        {name: heading, widget: object, i18n: true, fields: *SECTION_HEADING_FIELDS},
+        *BUTTON,
+      ]},
+      {name: services, widget: object, collapsed: true, summary: '{{fields.heading.title}}',i18n: true, fields: [
+        {name: heading, widget: object, i18n: true, fields: *SECTION_HEADING_FIELDS},
+        {name: items, widget: list, label_singular: item, i18n: true, fields: [
+          {name: Title, i18n: true, widget: string, required: false},
+          {name: Description, i18n: true, widget: text, required: false},
+          {name: Params, widget: object, i18n: true, fields: [
+            *IMAGE,
+            {name: tags, widget: list, label_singular: tag, i18n: true, field: {
+              name: tag, widget: string
+            }},
+          ]},
+        ]},
+      ]},
+      {name: banner, widget: object, collapsed: true, summary: '{{fields.title}}', i18n: true, fields: [
+        *TITLE,
+        *DESCRIPTION,
+        *IMAGE,
+        *ALT,
+        *BUTTON,
+      ]},
+      *VISIBLE_IN_CMS,
+    ]
+
+  - name: destinations
+    label: Destinations
+    label_singular: destinations
+    folder: content/destinations
+    create: true
+    i18n: true
+    filter: {field: visibleInCMS, value: true}
+    editor:
+      preview: false
+    fields: [
+      *TITLE,
+      *SLUG,
+      *DRAFT,
+      *WEIGHT,
+      *DESCRIPTION,
+      *IMAGE,
+      *VIEW360,
+      *BODY,
+      {name: accommodations, widget: object, i18n: true, fields: [
+        {name: title, widget: string, i18n: true},
+        *BUTTON,
+      ]},
+      {name: experiencesHeading, label: Experiences Heading, widget: object, summary: '{{fields.title}}', i18n: true, fields: *SECTION_HEADING_FIELDS},
+      *INFORMATION,
+      {name: show_on_check_rates, label: Show on check rates, widget: boolean, i18n: duplicate, required: false},
+      *VISIBLE_IN_CMS,
+    ]
+
+  - name: offers
+    label: Offers
+    label_singular: offer
+    folder: content/offers
+    create: true
+    i18n: true
+    filter: { field: visibleInCMS, value: true }
+    editor:
+      preview: false
+    fields: [
+      *TITLE,
+      *SLUG,
+      *DRAFT,
+      { name: teaser, widget: string, i18n: true },
+      { name: start_date, label: Start date (select future date), widget: datetime, i18n: duplicate, format: "DD.MM.YYYY", date_format: "DD.MM.YYYY", time_format: "", default: "" },
+      { name: expiryDate, label: End date, widget: datetime, i18n: duplicate, format: "YYYY-MM-DD", date_format: "DD.MM.YYYY", time_format: "", default: "" },
+      { name: price, label: Price, widget: number, value_type: float, min: 0 },
+      { name: publish_date, label: Publish date, widget: datetime, i18n: duplicate, format: "DD.MM.YYYY", date_format: "YYYY-MM-DD", time_format: "" },
+      { name: min_days_to_booking, label: Minimum distance to first date for booking in days, widget: number, value_type: int, min: 0 },
+      { name: rate_id, label: Rateplan id, widget: string, i18n: duplicate, required: false },
+      { name: promo_code, label: Promo code, widget: string, i18n: duplicate, required: false },
+      *MAIN_DESCRIPTION,
+      *MAIN_IMAGE,
+      *VISIBLE_IN_CMS,
+      { name: included, label: What is included in offer, widget: markdown, i18n: true},
+      { name: offerId, label: Offer Unique ID, widget: uuid, i18n: duplicate },
+    ]
+
+  - name: offer-variations
+    label: Offer variations
+    label_singular: offer variation
+    folder: content/offer-variations
+    create: true
+    i18n: true
+    editor:
+      preview: false
+    fields: [
+      { name: title, label: Title, widget: string, i18n: duplicate }, # *TITLE is not used, because of i18n: duplicate. This field shows up only in cms
+      { name: offer, widget: relation, collection: offers, search_fields: [ "title" ], display_fields: [ "title" ], value_field: "offerId", i18n: duplicate },
+      { name: property, widget: relation, collection: properties, search_fields: [ "title" ], display_fields: [ "title" ], value_field: "{{slug}}", i18n: duplicate },
+      { label: Rateplan Id, name: ratePlanId, widget: string, i18n: duplicate, required: false },
+      { label: Access Code, name: accessCode, widget: string, i18n: duplicate, required: false },
+      { name: from, widget: datetime, i18n: duplicate, format: "DD.MM.YYYY", date_format: "DD.MM.YYYY", time_format: "", default: "" },
+      { name: expiryDate, label: End date, widget: datetime, i18n: duplicate, format: "YYYY-MM-DD", date_format: "DD.MM.YYYY", time_format: "", default: "" },
+      { label: 'Discount tag', name: discount, widget: string, i18n: true },
+      *MAIN_DESCRIPTION,
+      { label: 'Minimum nights', name: minNights, widget: number, value_type: int, min: 1 },
+    ]
+
+  - name: inspiration
+    label: Inspiration
+    label_singular: post
+    folder: content/inspiration
+    create: true
+    i18n: true
+    filter: {field: visibleInCMS, value: true}
+    editor:
+      preview: false
+    fields: [
+      *TITLE,
+      *SLUG,
+      *DRAFT,
+      *WEIGHT,
+      {label: Properties, name: properties, widget: relation, collection: properties, search_fields: ["title"], display_fields: ["title"], value_field: "{{slug}}", i18n: duplicate, multiple: true},
+      *MAIN_DESCRIPTION,
+      *MAIN_IMAGE,
+      # *BODY,
+      *VISIBLE_IN_CMS,
+    ]
+
+  - name: experiences
+    label: Experiences
+    hide: true
+    label_singular: experience
+    folder: content/experiences
+    create: true
+    i18n: true
+    filter: {field: visibleInCMS, value: true}
+    editor:
+      preview: false
+    fields: [
+      *TITLE,
+      *SLUG,
+      *DRAFT,
+      *WEIGHT,
+      *DESCRIPTION,
+      *IMAGE,
+      *BODY,
+      *VISIBLE_IN_CMS,
+    ]
+
+  - name: holidays
+    label: Holidays
+    label_singular: holiday
+    folder: content/holidays
+    create: true
+    i18n: true
+    summary: "{{title}} - weight: {{weight}}"
+    filter: {field: visibleInCMS, value: true}
+    editor:
+      preview: false
+    fields: [
+      *TITLE,
+      *SLUG,
+      *DRAFT,
+      *WEIGHT,
+      *DESCRIPTION,
+      *IMAGE,
+      {name: properties, widget: relation, collection: properties, search_fields: ["title"], display_fields: ["title", "destination", "brand"], value_field: "{{slug}}", i18n: duplicate, multiple: true},
+      {name: accordions, widget: list, label_singular: accordion, i18n: true, fields: [
+        *TITLE,
+        {name: content, widget: markdown, minimal: true, i18n: true},
+      ]},
+      {name: relatedHeading, label: Related Heading, widget: object, summary: '{{fields.title}}', i18n: true, fields: *SECTION_HEADING_FIELDS},
+      {name: categories, widget: hidden, default: ['holiday']},
+      *VISIBLE_IN_CMS,
+    ]
+
+  - name: services
+    label: Services
+    label_singular: service
+    folder: content/services
+    create: true
+    i18n: true
+    filter: {field: visibleInCMS, value: true}
+    editor:
+      preview: false
+    fields: [
+      *TITLE,
+      {name: important, widget: boolean, required: false},
+      *VISIBLE_IN_CMS,
+    ]
+
+  - name: services-units
+    label: Services units
+    label_singular: service
+    folder: content/services-units
+    create: true
+    i18n: true
+    filter: {field: visibleInCMS, value: true}
+    editor:
+      preview: false
+    fields: [
+      *TITLE,
+      *VISIBLE_IN_CMS,
+    ]
+
+  - name: loyalty-levels
+    label: Loyalty Levels
+    label_singular: level
+    folder: content/loyalty/levels
+    i18n: true
+    filter: {field: visibleInCMS, value: true}
+    editor:
+      preview: false
+    fields: [
+      {name: title, widget: string, i18n: duplicate},
+      {name: level, widget: number, i18n: duplicate},
+      {name: weight, widget: number, i18n: duplicate},
+      {name: nights, widget: number, i18n: duplicate},
+      {name: points, widget: number, i18n: duplicate},
+      {name: proceed, label: Proceed text, widget: string, i18n: true},
+      {name: nightsText, label: Nights Text, widget: string, i18n: true},
+      {name: costText, label: Cost Text, widget: string, i18n: true},
+      *IMAGE,
+      {name: benefits, widget: list, label_singular: benefit, i18n: true, field:
+        {name: benefit, widget: string, i18n: true},
+      },
+      {name: smallText, label: Small text, widget: markdown, minimal: true, required: false},
+      {name: cost, widget: number, i18n: duplicate},
+      {name: roomRate, label: Room rate, widget: number, i18n: duplicate},
+      {name: extras, widget: number, i18n: duplicate},
+      *VISIBLE_IN_CMS,
+    ]
+
+  - name: loyalty-interests
+    label: Loyalty Interests
+    label_singular: interest
+    folder: content/loyalty/interests
+    i18n: true
+    create: true
+    filter: {field: visibleInCMS, value: true}
+    editor:
+      preview: false
+    fields: [
+      {name: title, widget: string, i18n: true},
+      {name: key, widget: string, i18n: duplicate},
+      {name: type, widget: select, i18n: duplicate, required: true, multiple: false, options: [
+          'holiday',
+          'campsite',
+          'brand',
+          'destination',
+      ]},
+      *VISIBLE_IN_CMS,
+    ]
+
+  - name: loyalty-awards
+    label: Loyalty Awards
+    label_singular: award
+    folder: content/loyalty/awards
+    create: true
+    i18n: true
+    filter: {field: visibleInCMS, value: true}
+    editor:
+      preview: false
+    fields: [
+      *TITLE,
+      *URL,
+      *MAIN_DESCRIPTION,
+      *MAIN_IMAGE,
+      {name: boxText, label: Box text, widget: text, i18n: true, required: false},
+      {name: beternaId, label: Beterna ID, widget: string, i18n: duplicate},
+      {name: points, widget: number, i18n: duplicate},
+      {name: destinations, widget: relation, collection: destinations, search_fields: ["title"], display_fields: ["title"], value_field: "{{slug}}", multiple: true, i18n: duplicate},
+      {name: interests, widget: select, i18n: duplicate, multiple: true, options: [
+        'interestActiveHolidays',
+        'interestAdultOnlyHolidays',
+        'interestFamilyHolidays',
+        'interestGastronomy',
+        'interestRomanticHolidays',
+        'interestWellnessAndSpa',
+      ]},
+      *VISIBLE_IN_CMS,
+    ]
+
+  - name: press-news
+    label: Press news
+    label_singular: news
+    folder: content/press/news
+    create: true
+    i18n: true
+    filter: {field: visibleInCMS, value: true}
+    editor:
+      preview: false
+    fields: [
+      *TITLE,
+      *URL,
+      *MAIN_DESCRIPTION,
+      *MAIN_IMAGE,
+      *BODY,
+      *VISIBLE_IN_CMS,
+    ]
+
+  - name: company-single
+    label: Company
+    folder: content/company
+    create: true
+    i18n: true
+    filter: {field: visibleInCMS, value: true}
+    editor:
+      preview: false
+    fields: [
+      *TITLE,
+      *HERO,
+      *URL,
+      *IMAGE,
+      *DESCRIPTION,
+      *BODY,
+      *VISIBLE_IN_CMS,
+      {name: contacts, label: Contacts, widget: list, i18n: true, fields: [
+        {name: title, label: Title, widget: string, i18n: true},
+        {name: cards, label: Cards, widget: list, i18n: true,
+        fields: [
+          {name: department, label: Department, widget: string, i18n: true},
+          {name: info, label: Info, widget: string, i18n: true},
+        ]},
+      ]},
+    ]
+
+  - name: b2b
+    label: B2B
+    label_singular: b2b
+    folder: content/b2b
+    create: true
+    i18n: true
+    filter: {field: visibleInCMS, value: true}
+    editor:
+      preview: false
+    fields: [
+      *TITLE,
+      *URL,
+      *MAIN_DESCRIPTION,
+      *MAIN_IMAGE,
+      *BODY,
+      *VISIBLE_IN_CMS,
+    ]
+
+  - name: conference-halls
+    label: Conference halls
+    folder: content/meetings-and-events/conference-halls
+    create: true
+    i18n: true
+    filter: {field: visibleInCMS, value: true}
+    editor:
+      preview: false
+    fields: [
+      *TITLE,
+      *DESCRIPTION,
+      {name: locations, widget: relation, collection: locations, search_fields: ['title'], display_fields: ['title'], value_field: '{{slug}}', i18n: duplicate, multiple: true},
+      *SLUG,
+      *IMAGE,
+      {name: services, label: Services, widget: object, i18n: true, collapsed: true, summary: '{{fields.title}}', fields: *SERVICES_UNITS_FIELDS},
+      *VISIBLE_IN_CMS,
+      {name: conferenceHalls, widget: list, i18n: true, fields: [
+        *TITLE,
+        *IMAGE,
+        {name: links, label: Links, widget: list, i18n: true, fields: [
+          {name: text, label: Text, widget: string, i18n: true},
+          {name: href, label: href, widget: string, i18n: true},
+        ]},
+        {name: table, label: Table, widget: list, i18n: true, fields: [
+          {name: characteristic, label: Characteristic, widget: string, i18n: true},
+          {name: value, label: Value, widget: string, i18n: true},
+        ]},
+      ]},
+    ]
+
+  - name: pages
+    label: Pages
+    editor:
+      preview: false
+    files: [
+      {label: Home EN, name: home-en, file: content/_index.en.md, fields: *HOME_FIELDS},
+      {label: Home HR, name: home-hr, file: content/_index.hr.md, fields: *HOME_FIELDS},
+      {label: Home DE, name: home-de, file: content/_index.de.md, fields: *HOME_FIELDS},
+      {label: Home IT, name: home-it, file: content/_index.it.md, fields: *HOME_FIELDS},
+      {label: Home SL, name: home-sl, file: content/_index.sl.md, fields: *HOME_FIELDS},
+      {label: Home NL, name: home-nl, file: content/_index.nl.md, fields: *HOME_FIELDS},
+      {label: Home PL, name: home-pl, file: content/_index.pl.md, fields: *HOME_FIELDS},
+      {label: Holidays list EN, name: holidays-en, file: content/holidays/_index.en.md, fields: *HOLIDAYS_FIELDS},
+      {label: Holidays list HR, name: holidays-hr, file: content/holidays/_index.hr.md, fields: *HOLIDAYS_FIELDS},
+      {label: Holidays list DE, name: holidays-de, file: content/holidays/_index.de.md, fields: *HOLIDAYS_FIELDS},
+      {label: Holidays list IT, name: holidays-it, file: content/holidays/_index.it.md, fields: *HOLIDAYS_FIELDS},
+      {label: Holidays list SL, name: holidays-sl, file: content/holidays/_index.sl.md, fields: *HOLIDAYS_FIELDS},
+      {label: Holidays list NL, name: holidays-nl, file: content/holidays/_index.nl.md, fields: *HOLIDAYS_FIELDS},
+      {label: Holidays list PL, name: holidays-pl, file: content/holidays/_index.pl.md, fields: *HOLIDAYS_FIELDS},
+      {label: Loyalty landing EN, name: loyalty-en, file: content/loyalty/_index.en.md, fields: *LOYALTY_FIELDS},
+      {label: Loyalty landing HR, name: loyalty-hr, file: content/loyalty/_index.hr.md, fields: *LOYALTY_FIELDS},
+      {label: Loyalty landing DE, name: loyalty-de, file: content/loyalty/_index.de.md, fields: *LOYALTY_FIELDS},
+      {label: Loyalty landing IT, name: loyalty-it, file: content/loyalty/_index.it.md, fields: *LOYALTY_FIELDS},
+      {label: Loyalty landing SL, name: loyalty-sl, file: content/loyalty/_index.sl.md, fields: *LOYALTY_FIELDS},
+      {label: Loyalty landing NL, name: loyalty-nl, file: content/loyalty/_index.nl.md, fields: *LOYALTY_FIELDS},
+      {label: Loyalty landing PL, name: loyalty-pl, file: content/loyalty/_index.pl.md, fields: *LOYALTY_FIELDS},
+      {label: Loyalty levels list EN, name: loyalty-levels-en, file: content/loyalty/levels/_index.en.md, fields: *LOYALTY_LEVELS_FIELDS},
+      {label: Loyalty levels list HR, name: loyalty-levels-hr, file: content/loyalty/levels/_index.hr.md, fields: *LOYALTY_LEVELS_FIELDS},
+      {label: Loyalty levels list DE, name: loyalty-levels-de, file: content/loyalty/levels/_index.de.md, fields: *LOYALTY_LEVELS_FIELDS},
+      {label: Loyalty levels list IT, name: loyalty-levels-it, file: content/loyalty/levels/_index.it.md, fields: *LOYALTY_LEVELS_FIELDS},
+      {label: Loyalty levels list SL, name: loyalty-levels-sl, file: content/loyalty/levels/_index.sl.md, fields: *LOYALTY_LEVELS_FIELDS},
+      {label: Loyalty levels list NL, name: loyalty-levels-nl, file: content/loyalty/levels/_index.nl.md, fields: *LOYALTY_LEVELS_FIELDS},
+      {label: Loyalty levels list PL, name: loyalty-levels-pl, file: content/loyalty/levels/_index.pl.md, fields: *LOYALTY_LEVELS_FIELDS},
+      {label: Destinations list EN, name: destinations-en, file: content/destinations/_index.en.md, fields: *DESTINATIONS_FIELDS},
+      {label: Destinations list HR, name: destinations-hr, file: content/destinations/_index.hr.md, fields: *DESTINATIONS_FIELDS},
+      {label: Destinations list DE, name: destinations-de, file: content/destinations/_index.de.md, fields: *DESTINATIONS_FIELDS},
+      {label: Destinations list IT, name: destinations-it, file: content/destinations/_index.it.md, fields: *DESTINATIONS_FIELDS},
+      {label: Destinations list SL, name: destinations-sl, file: content/destinations/_index.sl.md, fields: *DESTINATIONS_FIELDS},
+      {label: Destinations list NL, name: destinations-nl, file: content/destinations/_index.nl.md, fields: *DESTINATIONS_FIELDS},
+      {label: Destinations list PL, name: destinations-pl, file: content/destinations/_index.pl.md, fields: *DESTINATIONS_FIELDS},
+      {label: FAQ list EN, name: faq-en, file: content/faq/_index.en.md, fields: *FAQ_FIELDS},
+      {label: FAQ list HR, name: faq-hr, file: content/faq/_index.hr.md, fields: *FAQ_FIELDS},
+      {label: FAQ list DE, name: faq-de, file: content/faq/_index.de.md, fields: *FAQ_FIELDS},
+      {label: FAQ list IT, name: faq-it, file: content/faq/_index.it.md, fields: *FAQ_FIELDS},
+      {label: FAQ list SL, name: faq-sl, file: content/faq/_index.sl.md, fields: *FAQ_FIELDS},
+      {label: FAQ list NL, name: faq-nl, file: content/faq/_index.nl.md, fields: *FAQ_FIELDS},
+      {label: FAQ list PL, name: faq-pl, file: content/faq/_index.pl.md, fields: *FAQ_FIELDS},
+      {label: Brands list EN, name: brands-en, file: content/brands/_index.en.md, fields: *BRANDS_FIELDS},
+      {label: Brands list HR, name: brands-hr, file: content/brands/_index.hr.md, fields: *BRANDS_FIELDS},
+      {label: Brands list DE, name: brands-de, file: content/brands/_index.de.md, fields: *BRANDS_FIELDS},
+      {label: Brands list IT, name: brands-it, file: content/brands/_index.it.md, fields: *BRANDS_FIELDS},
+      {label: Brands list SL, name: brands-sl, file: content/brands/_index.sl.md, fields: *BRANDS_FIELDS},
+      {label: Brands list NL, name: brands-nl, file: content/brands/_index.nl.md, fields: *BRANDS_FIELDS},
+      {label: Brands list PL, name: brands-pl, file: content/brands/_index.pl.md, fields: *BRANDS_FIELDS},
+      {label: Experiences list EN, name: experiences-en, file: content/experiences/_index.en.md, fields: *EXPERIENCES_FIELDS},
+      {label: Experiences list HR, name: experiences-hr, file: content/experiences/_index.hr.md, fields: *EXPERIENCES_FIELDS},
+      {label: Experiences list DE, name: experiences-de, file: content/experiences/_index.de.md, fields: *EXPERIENCES_FIELDS},
+      {label: Experiences list IT, name: experiences-it, file: content/experiences/_index.it.md, fields: *EXPERIENCES_FIELDS},
+      {label: Experiences list SL, name: experiences-sl, file: content/experiences/_index.sl.md, fields: *EXPERIENCES_FIELDS},
+      {label: Experiences list NL, name: experiences-nl, file: content/experiences/_index.nl.md, fields: *EXPERIENCES_FIELDS},
+      {label: Experiences list PL, name: experiences-pl, file: content/experiences/_index.pl.md, fields: *EXPERIENCES_FIELDS},
+      {label: Press list EN, name: press-en, file: content/press/_index.en.md, fields: *PRESS_FIELDS},
+      {label: Press list HR, name: press-hr, file: content/press/_index.hr.md, fields: *PRESS_FIELDS},
+      {label: Press list DE, name: press-de, file: content/press/_index.de.md, fields: *PRESS_FIELDS},
+      {label: Press list IT, name: press-it, file: content/press/_index.it.md, fields: *PRESS_FIELDS},
+      {label: Press list SL, name: press-sl, file: content/press/_index.sl.md, fields: *PRESS_FIELDS},
+      {label: Press list NL, name: press-nl, file: content/press/_index.nl.md, fields: *PRESS_FIELDS},
+      {label: Press list PL, name: press-pl, file: content/press/_index.pl.md, fields: *PRESS_FIELDS},
+      {label: Press news list EN, name: press-news-en, file: content/press/news/_index.en.md, fields: *PRESS_NEWS_FIELDS},
+      {label: Press news list HR, name: press-news-hr, file: content/press/news/_index.hr.md, fields: *PRESS_NEWS_FIELDS},
+      {label: Press news list DE, name: press-news-de, file: content/press/news/_index.de.md, fields: *PRESS_NEWS_FIELDS},
+      {label: Press news list IT, name: press-news-it, file: content/press/news/_index.it.md, fields: *PRESS_NEWS_FIELDS},
+      {label: Press news list SL, name: press-news-sl, file: content/press/news/_index.sl.md, fields: *PRESS_NEWS_FIELDS},
+      {label: Press news list NL, name: press-news-nl, file: content/press/news/_index.nl.md, fields: *PRESS_NEWS_FIELDS},
+      {label: Press news list PL, name: press-news-pl, file: content/press/news/_index.pl.md, fields: *PRESS_NEWS_FIELDS},
+      {label: Press brochures list EN, name: press-brochures-en, file: content/press/brochures/_index.en.md, fields: *PRESS_BROCHURES_FIELDS},
+      {label: Press brochures list HR, name: press-brochures-hr, file: content/press/brochures/_index.hr.md, fields: *PRESS_BROCHURES_FIELDS},
+      {label: Press brochures list DE, name: press-brochures-de, file: content/press/brochures/_index.de.md, fields: *PRESS_BROCHURES_FIELDS},
+      {label: Press brochures list IT, name: press-brochures-it, file: content/press/brochures/_index.it.md, fields: *PRESS_BROCHURES_FIELDS},
+      {label: Press brochures list SL, name: press-brochures-sl, file: content/press/brochures/_index.sl.md, fields: *PRESS_BROCHURES_FIELDS},
+      {label: Press brochures list NL, name: press-brochures-nl, file: content/press/brochures/_index.nl.md, fields: *PRESS_BROCHURES_FIELDS},
+      {label: Press brochures list PL, name: press-brochures-pl, file: content/press/brochures/_index.pl.md, fields: *PRESS_BROCHURES_FIELDS},
+      {label: Company list EN, name: company-en, file: content/company/_index.en.md, fields: *COMPANY_FIELDS},
+      {label: Company list HR, name: company-hr, file: content/company/_index.hr.md, fields: *COMPANY_FIELDS},
+      {label: Company list DE, name: company-de, file: content/company/_index.de.md, fields: *COMPANY_FIELDS},
+      {label: Company list IT, name: company-it, file: content/company/_index.it.md, fields: *COMPANY_FIELDS},
+      {label: Company list SL, name: company-sl, file: content/company/_index.sl.md, fields: *COMPANY_FIELDS},
+      {label: Company list NL, name: company-nl, file: content/company/_index.nl.md, fields: *COMPANY_FIELDS},
+      {label: Company list PL, name: company-pl, file: content/company/_index.pl.md, fields: *COMPANY_FIELDS},
+      {label: Press PR Contact EN, name: press-pr-contact-en, file: content/press/pr-contact/_index.en.md, fields: *PRESS_PR_CONTACT_FIELDS},
+      {label: Press PR Contact HR, name: press-pr-contact-hr, file: content/press/pr-contact/_index.hr.md, fields: *PRESS_PR_CONTACT_FIELDS},
+      {label: Press PR Contact DE, name: press-pr-contact-de, file: content/press/pr-contact/_index.de.md, fields: *PRESS_PR_CONTACT_FIELDS},
+      {label: Press PR Contact IT, name: press-pr-contact-it, file: content/press/pr-contact/_index.it.md, fields: *PRESS_PR_CONTACT_FIELDS},
+      {label: Press PR Contact SL, name: press-pr-contact-sl, file: content/press/pr-contact/_index.sl.md, fields: *PRESS_PR_CONTACT_FIELDS},
+      {label: Press PR Contact NL, name: press-pr-contact-nl, file: content/press/pr-contact/_index.nl.md, fields: *PRESS_PR_CONTACT_FIELDS},
+      {label: Press PR Contact PL, name: press-pr-contact-pl, file: content/press/pr-contact/_index.pl.md, fields: *PRESS_PR_CONTACT_FIELDS},
+      {label: MICE list EN, name: mice-en, file: content/meetings-and-events/_index.en.md, fields: *MICE_FIELDS},
+      {label: MICE list HR, name: mice-hr, file: content/meetings-and-events/_index.hr.md, fields: *MICE_FIELDS},
+      {label: MICE list DE, name: mice-de, file: content/meetings-and-events/_index.de.md, fields: *MICE_FIELDS},
+      {label: MICE list IT, name: mice-it, file: content/meetings-and-events/_index.it.md, fields: *MICE_FIELDS},
+      {label: MICE list SL, name: mice-sl, file: content/meetings-and-events/_index.sl.md, fields: *MICE_FIELDS},
+      {label: MICE list NL, name: mice-nl, file: content/meetings-and-events/_index.nl.md, fields: *MICE_FIELDS},
+      {label: MICE list PL, name: mice-pl, file: content/meetings-and-events/_index.pl.md, fields: *MICE_FIELDS},
+      {label: MICE conference halls list EN, name: mice-conference-halls-en, file: content/meetings-and-events/conference-halls/_index.en.md, fields: *MICE_CONFERENCE_HALLS_FIELDS},
+      {label: MICE conference halls list HR, name: mice-conference-halls-hr, file: content/meetings-and-events/conference-halls/_index.hr.md, fields: *MICE_CONFERENCE_HALLS_FIELDS},
+      {label: MICE conference halls list DE, name: mice-conference-halls-de, file: content/meetings-and-events/conference-halls/_index.de.md, fields: *MICE_CONFERENCE_HALLS_FIELDS},
+      {label: MICE conference halls list IT, name: mice-conference-halls-it, file: content/meetings-and-events/conference-halls/_index.it.md, fields: *MICE_CONFERENCE_HALLS_FIELDS},
+      {label: MICE conference halls list SL, name: mice-conference-halls-sl, file: content/meetings-and-events/conference-halls/_index.sl.md, fields: *MICE_CONFERENCE_HALLS_FIELDS},
+      {label: MICE conference halls list NL, name: mice-conference-halls-nl, file: content/meetings-and-events/conference-halls/_index.nl.md, fields: *MICE_CONFERENCE_HALLS_FIELDS},
+      {label: MICE conference halls list PL, name: mice-conference-halls-pl, file: content/meetings-and-events/conference-halls/_index.pl.md, fields: *MICE_CONFERENCE_HALLS_FIELDS},
+      {label: MICE weddings list EN, name: mice-weddings-en, file: content/meetings-and-events/weddings/_index.en.md, fields: *MICE_WEDDINGS_FIELDS},
+      {label: MICE weddings list HR, name: mice-weddings-hr, file: content/meetings-and-events/weddings/_index.hr.md, fields: *MICE_WEDDINGS_FIELDS},
+      {label: MICE weddings list DE, name: mice-weddings-de, file: content/meetings-and-events/weddings/_index.de.md, fields: *MICE_WEDDINGS_FIELDS},
+      {label: MICE weddings list IT, name: mice-weddings-it, file: content/meetings-and-events/weddings/_index.it.md, fields: *MICE_WEDDINGS_FIELDS},
+      {label: MICE weddings list SL, name: mice-weddings-sl, file: content/meetings-and-events/weddings/_index.sl.md, fields: *MICE_WEDDINGS_FIELDS},
+      {label: MICE weddings list NL, name: mice-weddings-nl, file: content/meetings-and-events/weddings/_index.nl.md, fields: *MICE_WEDDINGS_FIELDS},
+      {label: MICE weddings list PL, name: mice-weddings-pl, file: content/meetings-and-events/weddings/_index.pl.md, fields: *MICE_WEDDINGS_FIELDS},
+      {label: Press Web Albums EN, name: press-web-albums-en, file: content/press/web-albums/_index.en.md, fields: *PRESS_WEB_ALBUMS_FIELDS},
+      {label: Press Web Albums HR, name: press-web-albums-hr, file: content/press/web-albums/_index.hr.md, fields: *PRESS_WEB_ALBUMS_FIELDS},
+      {label: MICE food and beverages EN, name: mice-food-and-beverages-en, file: content/meetings-and-events/food-and-beverages/index.en.md, fields: *MICE_FOOD_BEVERAGES_FIELDS},
+      {label: MICE food and beverages HR, name: mice-food-and-beverages-hr, file: content/meetings-and-events/food-and-beverages/index.hr.md, fields: *MICE_FOOD_BEVERAGES_FIELDS},
+      {label: MICE food and beverages DE, name: mice-food-and-beverages-de, file: content/meetings-and-events/food-and-beverages/index.de.md, fields: *MICE_FOOD_BEVERAGES_FIELDS},
+      {label: MICE food and beverages IT, name: mice-food-and-beverages-it, file: content/meetings-and-events/food-and-beverages/index.it.md, fields: *MICE_FOOD_BEVERAGES_FIELDS},
+      {label: MICE food and beverages SL, name: mice-food-and-beverages-sl, file: content/meetings-and-events/food-and-beverages/index.sl.md, fields: *MICE_FOOD_BEVERAGES_FIELDS},
+      {label: MICE food and beverages NL, name: mice-food-and-beverages-nl, file: content/meetings-and-events/food-and-beverages/index.nl.md, fields: *MICE_FOOD_BEVERAGES_FIELDS},
+      {label: MICE food and beverages PL, name: mice-food-and-beverages-pl, file: content/meetings-and-events/food-and-beverages/index.pl.md, fields: *MICE_FOOD_BEVERAGES_FIELDS},
+      {label: B2B groups EN, name: b2b-groups-en, file: content/b2b/groups.en.md, fields: *B2B_GROUPS_FIELDS},
+      {label: B2B groups HR, name: b2b-groups-hr, file: content/b2b/groups.hr.md, fields: *B2B_GROUPS_FIELDS},
+      {label: B2B groups DE, name: b2b-groups-de, file: content/b2b/groups.de.md, fields: *B2B_GROUPS_FIELDS},
+      {label: B2B groups IT, name: b2b-groups-it, file: content/b2b/groups.it.md, fields: *B2B_GROUPS_FIELDS},
+      {label: B2B groups SL, name: b2b-groups-sl, file: content/b2b/groups.sl.md, fields: *B2B_GROUPS_FIELDS},
+      {label: B2B groups NL, name: b2b-groups-nl, file: content/b2b/groups.nl.md, fields: *B2B_GROUPS_FIELDS},
+      {label: B2B groups PL, name: b2b-groups-pl, file: content/b2b/groups.pl.md, fields: *B2B_GROUPS_FIELDS},
+      {label: Legal notice EN, name: legal-notice-en, file: content/legal-notice.en.md, fields: *LEGAL_NOTICE_FIELDS},
+      {label: Legal notice HR, name: legal-notice-hr, file: content/legal-notice.hr.md, fields: *LEGAL_NOTICE_FIELDS},
+      {label: Legal notice DE, name: legal-notice-de, file: content/legal-notice.de.md, fields: *LEGAL_NOTICE_FIELDS},
+      {label: Legal notice IT, name: legal-notice-it, file: content/legal-notice.it.md, fields: *LEGAL_NOTICE_FIELDS},
+      {label: Legal notice SL, name: legal-notice-sl, file: content/legal-notice.sl.md, fields: *LEGAL_NOTICE_FIELDS},
+      {label: Legal notice NL, name: legal-notice-nl, file: content/legal-notice.nl.md, fields: *LEGAL_NOTICE_FIELDS},
+      {label: Legal notice PL, name: legal-notice-pl, file: content/legal-notice.pl.md, fields: *LEGAL_NOTICE_FIELDS},
+      {label: Privacy policy EN, name: privacy-policy-en, file: content/privacy-policy.en.md, fields: *PRIVACY_POLICY_FIELDS},
+      {label: Privacy policy HR, name: privacy-policy-hr, file: content/privacy-policy.hr.md, fields: *PRIVACY_POLICY_FIELDS},
+      {label: Privacy policy DE, name: privacy-policy-de, file: content/privacy-policy.de.md, fields: *PRIVACY_POLICY_FIELDS},
+      {label: Privacy policy IT, name: privacy-policy-it, file: content/privacy-policy.it.md, fields: *PRIVACY_POLICY_FIELDS},
+      {label: Privacy policy SL, name: privacy-policy-sl, file: content/privacy-policy.sl.md, fields: *PRIVACY_POLICY_FIELDS},
+      {label: Privacy policy NL, name: privacy-policy-nl, file: content/privacy-policy.nl.md, fields: *PRIVACY_POLICY_FIELDS},
+      {label: Privacy policy PL, name: privacy-policy-pl, file: content/privacy-policy.pl.md, fields: *PRIVACY_POLICY_FIELDS},
+      {label: Cookie policy EN, name: cookie-policy-en, file: content/cookie-policy.en.md, fields: *COOKIE_POLICY_FIELDS},
+      {label: Cookie policy HR, name: cookie-policy-hr, file: content/cookie-policy.hr.md, fields: *COOKIE_POLICY_FIELDS},
+      {label: Cookie policy DE, name: cookie-policy-de, file: content/cookie-policy.de.md, fields: *COOKIE_POLICY_FIELDS},
+      {label: Cookie policy IT, name: cookie-policy-it, file: content/cookie-policy.it.md, fields: *COOKIE_POLICY_FIELDS},
+      {label: Cookie policy SL, name: cookie-policy-sl, file: content/cookie-policy.sl.md, fields: *COOKIE_POLICY_FIELDS},
+      {label: Cookie policy NL, name: cookie-policy-nl, file: content/cookie-policy.nl.md, fields: *COOKIE_POLICY_FIELDS},
+      {label: Cookie policy PL, name: cookie-policy-pl, file: content/cookie-policy.pl.md, fields: *COOKIE_POLICY_FIELDS},
+    ]
+
+  - name: locations
+    label: Locations
+    label_singular: location
+    folder: content/locations
+    path: '{{slug}}/_index'
+    filter: {field: visibleInCMS, value: true}
+    i18n: true
+    delete: false
+    editor:
+      preview: false
+    fields: [
+      {name: title, widget: string, i18n: true},
+      *DESCRIPTION,
+      {name: weight, widget: number, required: false, i18n: duplicate},
+      *VISIBLE_IN_CMS,
+    ]
+
+  - name: forms
+    label: Forms
+    editor:
+      preview: false
+    files: [
+      {label: Newsletter EN, name: newsletter-en, file: content/newsletter/_index.en.md, fields: *NEWSLETTER_FIELDS},
+      {label: Newsletter HR, name: newsletter-hr, file: content/newsletter/_index.hr.md, fields: *NEWSLETTER_FIELDS},
+      {label: Newsletter DE, name: newsletter-de, file: content/newsletter/_index.de.md, fields: *NEWSLETTER_FIELDS},
+      {label: Newsletter IT, name: newsletter-it, file: content/newsletter/_index.it.md, fields: *NEWSLETTER_FIELDS},
+      {label: Newsletter SL, name: newsletter-sl, file: content/newsletter/_index.sl.md, fields: *NEWSLETTER_FIELDS},
+      {label: Newsletter NL, name: newsletter-nl, file: content/newsletter/_index.nl.md, fields: *NEWSLETTER_FIELDS},
+      {label: Newsletter PL, name: newsletter-pl, file: content/newsletter/_index.pl.md, fields: *NEWSLETTER_FIELDS},
+      {label: Contact us EN, name: contact-en, file: content/contact/_index.en.md, fields: *CONTACT_FIELDS},
+      {label: Contact us HR, name: contact-hr, file: content/contact/_index.hr.md, fields: *CONTACT_FIELDS},
+      {label: Contact us DE, name: contact-de, file: content/contact/_index.de.md, fields: *CONTACT_FIELDS},
+      {label: Contact us IT, name: contact-it, file: content/contact/_index.it.md, fields: *CONTACT_FIELDS},
+      {label: Contact us SL, name: contact-sl, file: content/contact/_index.sl.md, fields: *CONTACT_FIELDS},
+      {label: Contact us NL, name: contact-nl, file: content/contact/_index.nl.md, fields: *CONTACT_FIELDS},
+      {label: Contact us PL, name: contact-pl, file: content/contact/_index.pl.md, fields: *CONTACT_FIELDS},
+    ]
+
+  - name: topics
+    label: FAQ Topics
+    label_singular: topic
+    folder: content/topics
+    i18n: true
+    create: true
+    filter: {field: visibleInCMS, value: true}
+    editor:
+      preview: false
+    fields: [
+      {name: title, widget: string, i18n: true},
+      *VISIBLE_IN_CMS,
+    ]
+
+  - name: faq
+    label: Frequently Asked Questions
+    label_singular: faq
+    folder: content/faq
+    create: true
+    i18n: true
+    filter: {field: visibleInCMS, value: true}
+    editor:
+      preview: false
+    fields: [
+      *TITLE,
+      {name: description, label: Description, widget: text, i18n: true, required: true},
+      {name: topic, label: Select topic, widget: relation, collection: topics, search_fields: [ "title" ], display_fields: [ "title" ], value_field: "{{slug}}", i18n: duplicate},
+      *VISIBLE_IN_CMS,
+    ]
+
+  - name: events
+    label: Events (experiences)
+    label_singular: event
+    folder: content/experiences/events
+    create: true
+    i18n: true
+    filter: {field: visibleInCMS, value: true}
+    editor:
+      preview: false
+    fields: [
+      *TITLE,
+      *MAIN_DESCRIPTION,
+      *URL,
+      *DRAFT,
+      {name: destination, label: Destination, widget: relation, collection: destinations, search_fields: ["title"], display_fields: ["title"], value_field: "{{slug}}", i18n: duplicate},
+      {name: location, label: Location, widget: text, i18n: true, required: true},
+      *MAIN_IMAGE,
+      {name: startDate, label: Start date, widget: datetime, i18n: duplicate},
+      {name: expiryDate, label: End date, widget: datetime, i18n: duplicate},
+      *BODY,
+      *VISIBLE_IN_CMS,
+    ]
+
+  - name: travel-ideas
+    label: Travel Ideas (experiences)
+    label_singular: travel idea
+    folder: content/experiences/travel-ideas
+    create: true
+    i18n: true
+    filter: {field: visibleInCMS, value: true}
+    editor:
+      preview: false
+    fields: [
+      *TITLE,
+      *MAIN_DESCRIPTION,
+      *URL,
+      *DRAFT,
+      {name: travelType, label: Select type, widget: relation, collection: travel-types, search_fields: [ "title" ], display_fields: [ "title" ], value_field: "{{slug}}", i18n: duplicate},
+      *MAIN_IMAGE,
+      *BODY,
+      *GALLERY,
+      {name: properties, widget: object, i18n: true, fields: [
+        {name: title, widget: string, i18n: true},
+        {name: items, widget: relation, collection: properties, search_fields: ["title"], display_fields: ["title", "destination", "brand"], value_field: "{{slug}}", i18n: duplicate, multiple: true},
+      ]},
+      *VISIBLE_IN_CMS,
+    ]
+
+  - name: travel-types
+    label: Travel Idea Types
+    label_singular: travel type
+    folder: content/travel-types
+    i18n: true
+    create: true
+    filter: {field: visibleInCMS, value: true}
+    editor:
+      preview: false
+    fields: [
+      *TITLE,
+      *VISIBLE_IN_CMS,
+    ]
+
+  - name: translations
+    label: Translations
+    editor:
+      preview: false
+    files: [
+      {label: EN, name: en, file: i18n/en.toml, fields: *TRANSLATION_FIELDS},
+      {label: HR, name: hr, file: i18n/hr.toml, fields: *TRANSLATION_FIELDS},
+      {label: DE, name: de, file: i18n/de.toml, fields: *TRANSLATION_FIELDS},
+      {label: IT, name: it, file: i18n/it.toml, fields: *TRANSLATION_FIELDS},
+      {label: SL, name: sl, file: i18n/sl.toml, fields: *TRANSLATION_FIELDS},
+      {label: NL, name: nl, file: i18n/nl.toml, fields: *TRANSLATION_FIELDS},
+    ]
+
+  - name: components
+    label: Components
+    editor:
+      preview: false
+    i18n:
+      structure: single_file
+      locales: [en, hr, de, it, sl, nl, pl]
+    files: [
+      # {label: Header, name: header, file: data/header.json, fields: [
+      #   {name: logo, widget: object, fields: [
+      #     {name: mobile, widget: image},
+      #     {name: desktop, widget: image},
+      #   ]},
+      #   {name: phone, label: Phone number, widget: string},
+      # ]},
+      {label: Maicard, name: maicard, file: data/maicard.json, i18n: true, fields: [
+        *TITLE,
+        *DESCRIPTION,
+        *SUPERTITLE,
+        {name: topImage, label: Top Image, widget: object, collapsed: true, summary: '{{fields.src}}', i18n: true, fields: [
+          {name: src, widget: image, i18n: true},
+          *ALT,
+        ]},
+        {name: bottomImage, label: Bottom Image, widget: object, collapsed: true, summary: '{{fields.src}}', i18n: true, fields: [
+          {name: src, widget: image, i18n: true},
+          *ALT,
+        ]},
+        {name: items, label: Items, label_singular: item, widget: list, summary: '{{text}}', i18n: true, field: {name: text, widget: string, i18n: true}},
+        {name: buttons, widget: list, label_singular: item, i18n: true, fields: [
+          {name: text, widget: string, i18n: true},
+          {name: href, widget: string, i18n: true},
+        ]},
+      ]},
+      {label: Benefits, name: benefits, file: data/benefits.json, 18n: true, fields: [
+        *TITLE,
+        {name: items, label: items, label_singular: item, widget: list, 18n: true, fields: [
+          {name: title, label: Title, widget: string, 18n: true},
+          {name: description, label: Description, widget: text, 18n: true},
+        ]}
+      ]},
+      {label: Newsletter, name: newsletter, file: data/newsletter.json, 18n: true, fields: [
+        *TITLE,
+        *DESCRIPTION,
+        {name: images, widget: object, i18n: true, fields: [
+          {name: default, widget: image, i18n: true},
+          {name: collection, widget: image, i18n: true},
+          {name: select, widget: image, i18n: true},
+          {name: camping, widget: image, i18n: true},
+          {name: loyalty, widget: image, i18n: true},
+        ]},
+        {label: 'Email input placeholder', name: inputPlaceholder, widget: string, i18n: true},
+        {label: 'Button label', name: buttonLabel, widget: string, i18n: true},
+      ]},
+      {label: Cookies, name: cookies, i18n: true, file: data/cookies.json, fields: [
+        {name: text, widget: string, i18n: true},
+        {name: confirm, widget: string, i18n: true},
+        {name: more, widget: object, i18n: true, fields: [
+          {name: text, widget: string, i18n: true},
+          {name: href, widget: string, i18n: true},
+        ]},
+      ]},
+      {name: miceContact, label: MICE Contact, file: data/miceContact.json, 18n: true, fields: [
+        {name: locations, label: Locations, widget: list, i18n: true, fields: [
+          *TITLE,
+          {name: phone, label: Phone, widget: list, i18n: true},
+          {name: email, label: Email, widget: string, i18n: true},
+        ]},
+        {name: buttons, label: Buttons, widget: list, i18n: true, fields: [
+          {name: text, label: Text, widget: string, i18n: true},
+          {name: href, label: Href, widget: string, i18n: true},
+        ]},
+        {name: menus, widget: object, i18n: true, fields: [
+          *TITLE_OPT,
+          {name: content, i18n: true, widget: text, required: false},
+          {name: files, widget: list, label_singular: file, summary: '{{fields.name}}', i18n: true, fields: [
+            {name: name, i18n: true, widget: string, required: false},
+            {name: source, i18n: true, widget: file, required: false},
+          ]},
+        ]},
+      ]},
+      {label: Footer, name: footer, i18n: true, file: data/footer.json, fields: [
+        {name: title, widget: string, i18n: true},
+        {name: links, widget: list, label_singular: link, i18n: true, fields: [
+          {name: title, widget: string, i18n: true},
+          {name: href, widget: string, i18n: true},
+        ]},
+        {name: socialMedia, widget: object, i18n: true, fields: [
+          {name: title, widget: string, i18n: true},
+          {name: collection, widget: list, i18n: true, fields: [
+            {name: title, widget: string, i18n: true},
+            {name: href, widget: string, i18n: true},
+          ]},
+          {name: select, widget: list, i18n: true, fields: [
+            {name: title, widget: string, i18n: true},
+            {name: href, widget: string, i18n: true},
+          ]},
+          {name: camping, widget: list, i18n: true, fields: [
+            {name: title, widget: string, i18n: true},
+            {name: href, widget: string, i18n: true},
+          ]},
+        ]},
+        {name: lists, label_singular: list, widget: list, i18n: true, fields: [
+          {name: title, widget: string, i18n: true},
+          {name: links, widget: list, i18n: true, fields: [
+            {name: title, widget: string, i18n: true},
+            {name: href, widget: string, i18n: true}
+          ]},
+        ]},
+        {name: bottomFooter, label: bottom footer, widget: object, i18n: true, fields: [
+          {name: logo, widget: object, i18n: true, fields: [
+            {name: src, widget: image, i18n: duplicate},
+            {name: alt, widget: string, i18n: true}
+          ]},
+          {name: copyright, widget: string, i18n: true},
+          {name: links, widget: list, i18n: true, fields: [
+            {name: title, widget: string, i18n: true},
+            {name: href, widget: string, i18n: true}
+          ]},
+        ]}
+      ]},
+    ]
+
+  - name: general
+    label: General
     editor:
       preview: false
     files:
-      - name: 'general'
-        label: 'Site Settings'
-        file: '_data/settings.json'
-        description: 'General Site Settings'
-        fields:
-          - { label: 'Global title', name: 'site_title', widget: 'string' }
-          - label: 'Post Settings'
-            name: posts
-            widget: 'object'
-            fields:
-              - {
-                  label: 'Number of posts on frontpage',
-                  name: front_limit,
-                  widget: number,
-                  min: 1,
-                  max: 10,
-                }
-              - { label: 'Default Author', name: author, widget: string }
-              - {
-                  label: 'Default Thumbnail',
-                  name: thumb,
-                  widget: image,
-                  class: 'thumb',
-                  required: false,
-                }
-
-      - name: 'authors'
-        label: 'Authors'
-        file: '_data/authors.yml'
-        description: 'Author descriptions'
-        fields:
-          - name: authors
-            label: Authors
-            label_singular: 'Author'
-            widget: list
-            fields:
-              - { label: 'Name', name: 'name', widget: 'string', hint: 'First and Last' }
-              - { label: 'Description', name: 'description', widget: 'markdown' }
-
-  - name: 'kitchenSink' # all the things in one entry, for documentation and quick testing
-    label: 'Kitchen Sink'
-    folder: '_sink'
-    create: true
-    fields:
-      - label: 'Related Post'
-        name: 'post'
-        widget: 'relationKitchenSinkPost'
-        collection: 'posts'
-        display_fields: ['title', 'date']
-        search_fields: ['title', 'body']
-        value_field: 'title'
-      - { label: 'Title', name: 'title', widget: 'string' }
-      - { label: 'Boolean', name: 'boolean', widget: 'boolean', default: true }
-      - { label: 'Map', name: 'map', widget: 'map' }
-      - { label: 'Text', name: 'text', widget: 'text', hint: 'Plain text, not markdown' }
-      - { label: 'Number', name: 'number', widget: 'number', hint: 'To infinity and beyond!' }
-      - { label: 'Markdown', name: 'markdown', widget: 'markdown' }
-      - { label: 'Datetime', name: 'datetime', widget: 'datetime' }
-      - { label: 'Date', name: 'date', widget: 'date' }
-      - { label: 'Color', name: 'color', widget: 'color' }
-      - {
-          label: 'Color string editable and alpha enabled',
-          name: 'colorEditable',
-          widget: 'color',
-          enableAlpha: true,
-          allowInput: true,
-        }
-      - { label: 'Image', name: 'image', widget: 'image' }
-      - { label: 'File', name: 'file', widget: 'file' }
-      - { label: 'Select', name: 'select', widget: 'select', options: ['a', 'b', 'c'] }
-      - {
-          label: 'Select multiple',
-          name: 'select_multiple',
-          widget: 'select',
-          options: ['a', 'b', 'c'],
-          multiple: true,
-        }
-      - {
-          label: 'Select numeric',
-          name: 'select_numeric',
-          widget: 'select',
-          options:
-            [{ label: 'One', value: 1 }, { label: 'Two', value: 2 }, { label: 'Three', value: 3 }],
-        }
-      - { label: 'Hidden', name: 'hidden', widget: 'hidden', default: 'hidden' }
-      - label: 'Object'
-        name: 'object'
-        widget: 'object'
-        collapsed: true
-        fields:
-          - label: 'Related Post'
-            name: 'post'
-            widget: 'relationKitchenSinkPost'
-            collection: 'posts'
-            search_fields: ['title', 'body']
-            value_field: 'title'
-          - { label: 'String', name: 'string', widget: 'string' }
-          - { label: 'Boolean', name: 'boolean', widget: 'boolean', default: false }
-          - { label: 'Text', name: 'text', widget: 'text' }
-          - { label: 'Number', name: 'number', widget: 'number' }
-          - { label: 'Markdown', name: 'markdown', widget: 'markdown' }
-          - { label: 'Datetime', name: 'datetime', widget: 'datetime' }
-          - { label: 'Date', name: 'date', widget: 'date' }
-          - { label: 'Image', name: 'image', widget: 'image' }
-          - { label: 'File', name: 'file', widget: 'file' }
-          - { label: 'Select', name: 'select', widget: 'select', options: ['a', 'b', 'c'] }
-      - label: 'List'
-        name: 'list'
-        widget: 'list'
-        fields:
-          - { label: 'String', name: 'string', widget: 'string' }
-          - { label: 'Boolean', name: 'boolean', widget: 'boolean' }
-          - { label: 'Text', name: 'text', widget: 'text' }
-          - { label: 'Number', name: 'number', widget: 'number' }
-          - { label: 'Markdown', name: 'markdown', widget: 'markdown' }
-          - { label: 'Datetime', name: 'datetime', widget: 'datetime' }
-          - { label: 'Date', name: 'date', widget: 'date' }
-          - { label: 'Image', name: 'image', widget: 'image' }
-          - { label: 'File', name: 'file', widget: 'file' }
-          - { label: 'Select', name: 'select', widget: 'select', options: ['a', 'b', 'c'] }
-          - label: 'Object'
-            name: 'object'
-            widget: 'object'
-            fields:
-              - { label: 'String', name: 'string', widget: 'string' }
-              - { label: 'Boolean', name: 'boolean', widget: 'boolean' }
-              - { label: 'Text', name: 'text', widget: 'text' }
-              - { label: 'Number', name: 'number', widget: 'number' }
-              - { label: 'Markdown', name: 'markdown', widget: 'markdown' }
-              - { label: 'Datetime', name: 'datetime', widget: 'datetime' }
-              - { label: 'Date', name: 'date', widget: 'date' }
-              - { label: 'Image', name: 'image', widget: 'image' }
-              - { label: 'File', name: 'file', widget: 'file' }
-              - { label: 'Select', name: 'select', widget: 'select', options: ['a', 'b', 'c'] }
-              - label: 'List'
-                name: 'list'
-                widget: 'list'
-                fields:
-                  - label: 'Related Post'
-                    name: 'post'
-                    widget: 'relationKitchenSinkPost'
-                    collection: 'posts'
-                    search_fields: ['title', 'body']
-                    value_field: 'title'
-                  - { label: 'String', name: 'string', widget: 'string' }
-                  - { label: 'Boolean', name: 'boolean', widget: 'boolean' }
-                  - { label: 'Text', name: 'text', widget: 'text' }
-                  - { label: 'Number', name: 'number', widget: 'number' }
-                  - { label: 'Markdown', name: 'markdown', widget: 'markdown' }
-                  - { label: 'Datetime', name: 'datetime', widget: 'datetime' }
-                  - { label: 'Date', name: 'date', widget: 'date' }
-                  - { label: 'Image', name: 'image', widget: 'image' }
-                  - { label: 'File', name: 'file', widget: 'file' }
-                  - { label: 'Select', name: 'select', widget: 'select', options: ['a', 'b', 'c'] }
-                  - { label: 'Hidden', name: 'hidden', widget: 'hidden', default: 'hidden' }
-                  - label: 'Object'
-                    name: 'object'
-                    widget: 'object'
-                    fields:
-                      - { label: 'String', name: 'string', widget: 'string' }
-                      - { label: 'Boolean', name: 'boolean', widget: 'boolean' }
-                      - { label: 'Text', name: 'text', widget: 'text' }
-                      - { label: 'Number', name: 'number', widget: 'number' }
-                      - { label: 'Markdown', name: 'markdown', widget: 'markdown' }
-                      - { label: 'Datetime', name: 'datetime', widget: 'datetime' }
-                      - { label: 'Date', name: 'date', widget: 'date' }
-                      - { label: 'Image', name: 'image', widget: 'image' }
-                      - { label: 'File', name: 'file', widget: 'file' }
-                      - {
-                          label: 'Select',
-                          name: 'select',
-                          widget: 'select',
-                          options: ['a', 'b', 'c'],
-                        }
-      - label: 'Typed List'
-        name: 'typed_list'
-        widget: 'list'
-        types:
-          - label: 'Type 1 Object'
-            name: 'type_1_object'
-            widget: 'object'
-            fields:
-              - { label: 'String', name: 'string', widget: 'string' }
-              - { label: 'Boolean', name: 'boolean', widget: 'boolean' }
-              - { label: 'Text', name: 'text', widget: 'text' }
-          - label: 'Type 2 Object'
-            name: 'type_2_object'
-            widget: 'object'
-            fields:
-              - { label: 'Number', name: 'number', widget: 'number' }
-              - { label: 'Select', name: 'select', widget: 'select', options: ['a', 'b', 'c'] }
-              - { label: 'Datetime', name: 'datetime', widget: 'datetime' }
-              - { label: 'Markdown', name: 'markdown', widget: 'markdown' }
-          - label: 'Type 3 Object'
-            name: 'type_3_object'
-            widget: 'object'
-            fields:
-              - { label: 'Date', name: 'date', widget: 'date' }
-              - { label: 'Image', name: 'image', widget: 'image' }
-              - { label: 'File', name: 'file', widget: 'file' }
+    - label: Site settings
+      name: site-settings
+      file: config.toml
+      fields: [
+        {name: title, widget: string},
+        {label: Google Analytics ID, name: googleAnalytics, widget: string, required: false},
+        {name: params, widget: object, fields: [
+          {name: description, widget: text},
+          {name: image, widget: image},
+        ]},
+        {name: languages, widget: object, fields: [
+          {name: en, widget: object, collapsed: true, summary: '{{fields.languageName}}', fields: *LANGUAGE_FIELDS},
+          {name: hr, widget: object, collapsed: true, summary: '{{fields.languageName}}', fields: *LANGUAGE_FIELDS},
+          {name: de, widget: object, collapsed: true, summary: '{{fields.languageName}}', fields: *LANGUAGE_FIELDS},
+          {name: it, widget: object, collapsed: true, summary: '{{fields.languageName}}', fields: *LANGUAGE_FIELDS},
+          {name: sl, widget: object, collapsed: true, summary: '{{fields.languageName}}', fields: *LANGUAGE_FIELDS},
+          {name: nl, widget: object, collapsed: true, summary: '{{fields.languageName}}', fields: *LANGUAGE_FIELDS},
+          {name: pl, widget: object, collapsed: true, summary: '{{fields.languageName}}', fields: *LANGUAGE_FIELDS},
+        ]},
+      ]
+    - label: Rate Plan IDs
+      name: rateplans
+      file: content/loyalty/rateplans/_index.md
+      fields: [
+        {name: items, label_singular: item, widget: list, fields: [
+          {name: key, widget: string},
+          {name: value, widget: string}
+        ]},
+      ]
+    - label: Access Codes
+      name: accesscodes
+      file: content/accesscodes/_index.md
+      fields: [
+        {name: items, label_singular: item, widget: list, fields: [
+          {name: code, widget: string}
+        ]},
+      ]
