@@ -7,7 +7,7 @@ import { Map, List } from 'immutable';
 import { once } from 'lodash';
 import uuid from 'uuid/v4';
 import { oneLine } from 'common-tags';
-import { lengths, components, buttons, borders, effects, shadows } from 'netlify-cms-ui-default';
+import { lengths, components, buttons, borders, effects, shadows, IconButton } from 'netlify-cms-ui-default';
 import { basename } from 'netlify-cms-lib-util';
 import { SortableContainer, SortableElement } from 'react-sortable-hoc';
 import { arrayMoveImmutable as arrayMove } from 'array-move';
@@ -30,7 +30,8 @@ const ImageWrapper = styled.div`
 
 const SortableImageButtonsWrapper = styled.div`
   display: flex;
-  flex-direction: column;
+  justify-content: center;
+  column-gap: 10px;
   margin-right: 20px;
   margin-top: -10px;
   margin-bottom: 10px;
@@ -49,12 +50,8 @@ function Image(props) {
 function SortableImageButtons() {
   return (
     <SortableImageButtonsWrapper>
-      <FileWidgetButton>
-        {`Replace`}
-      </FileWidgetButton>
-      <FileWidgetButton>
-        {`Remove`}
-      </FileWidgetButton>
+      <IconButton size="small" type="media"></IconButton>
+      <IconButton size="small" type="close"></IconButton>
     </SortableImageButtonsWrapper>
   )
 }
@@ -65,7 +62,7 @@ const SortableImage = SortableElement(({ itemValue, getAsset, field }) => {
       <ImageWrapper sortable>
         <Image src={getAsset(itemValue, field) || ''} />
       </ImageWrapper>
-      <SortableImageButtons></SortableImageButtons>
+      <SortableImageButtons item={itemValue}></SortableImageButtons>
     </div>
   );
 });
@@ -249,6 +246,10 @@ export default function withFileControl({ forImage } = {}) {
       return this.props.onChange(newValue);
     };
 
+    onRemoveOne = ({ data }) => {
+      console.log(data)
+    }
+
     getValidateValue = () => {
       const { value } = this.props;
       if (value) {
@@ -299,6 +300,7 @@ export default function withFileControl({ forImage } = {}) {
           <SortableMultiImageWrapper
             items={value}
             onSortEnd={this.onSortEnd}
+            onRemoveOne={this.onRemoveOne}
             getAsset={getAsset}
             field={field}
             axis="xy"
