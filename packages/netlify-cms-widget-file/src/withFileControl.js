@@ -47,28 +47,28 @@ function Image(props) {
   return <StyledImage role="presentation" {...props} />;
 }
 
-function SortableImageButtons() {
+function SortableImageButtons({ onRemove }) {
   return (
     <SortableImageButtonsWrapper>
-      <IconButton size="small" type="media"></IconButton>
-      <IconButton size="small" type="close"></IconButton>
-    </SortableImageButtonsWrapper>
+      <IconButton size="small" type="close" onClick={onRemove}></IconButton>
+    </SortableImageButtonsWrapper >
   )
 }
 
-const SortableImage = SortableElement(({ itemValue, getAsset, field }) => {
+const SortableImage = SortableElement(({ itemValue, getAsset, field, onRemove }) => {
   return (
     <div>
       <ImageWrapper sortable>
         <Image src={getAsset(itemValue, field) || ''} />
       </ImageWrapper>
-      <SortableImageButtons item={itemValue}></SortableImageButtons>
+      <SortableImageButtons item={itemValue} onRemove={onRemove}></SortableImageButtons>
     </div>
   );
 });
 
 
-const SortableMultiImageWrapper = SortableContainer(({ items, getAsset, field }) => {
+const SortableMultiImageWrapper = SortableContainer(({ items, getAsset, field, onRemoveOne }) => {
+
   return (
     <div
       css={css`
@@ -83,6 +83,7 @@ const SortableMultiImageWrapper = SortableContainer(({ items, getAsset, field })
           itemValue={itemValue}
           getAsset={getAsset}
           field={field}
+          onRemove={onRemoveOne(index)}
         />
       ))}
     </div>
@@ -240,15 +241,17 @@ export default function withFileControl({ forImage } = {}) {
       return this.props.onChange('');
     };
 
+    onRemoveOne = index => () => {
+      const { value } = this.props;
+      value.splice(index, 1)
+      return this.props.onChange([...value]);
+    }
+
     onSortEnd = ({ oldIndex, newIndex }) => {
       const { value } = this.props;
       const newValue = arrayMove(value, oldIndex, newIndex);
       return this.props.onChange(newValue);
     };
-
-    onRemoveOne = ({ data }) => {
-      console.log(data)
-    }
 
     getValidateValue = () => {
       const { value } = this.props;
@@ -301,6 +304,7 @@ export default function withFileControl({ forImage } = {}) {
             items={value}
             onSortEnd={this.onSortEnd}
             onRemoveOne={this.onRemoveOne}
+            distance={1}
             getAsset={getAsset}
             field={field}
             axis="xy"
