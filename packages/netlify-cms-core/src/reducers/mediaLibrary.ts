@@ -62,7 +62,7 @@ function mediaLibrary(state = Map(defaultState), action: MediaLibraryAction) {
       });
 
     case MEDIA_LIBRARY_OPEN: {
-      const { controlID, forImage, privateUpload, config, field } = action.payload;
+      const { controlID, forImage, privateUpload, config, field, value, replaceIndex } = action.payload;
       const libConfig = config || Map();
       const privateUploadChanged = state.get('privateUpload') !== privateUpload;
       if (privateUploadChanged) {
@@ -76,6 +76,8 @@ function mediaLibrary(state = Map(defaultState), action: MediaLibraryAction) {
           controlMedia: Map(),
           displayURLs: Map(),
           field,
+          value,
+          replaceIndex,
         });
       }
       return state.withMutations(map => {
@@ -86,6 +88,8 @@ function mediaLibrary(state = Map(defaultState), action: MediaLibraryAction) {
         map.set('privateUpload', privateUpload);
         map.set('config', libConfig);
         map.set('field', field);
+        map.set('value', value);
+        map.set('replaceIndex', replaceIndex);
       });
     }
 
@@ -95,8 +99,26 @@ function mediaLibrary(state = Map(defaultState), action: MediaLibraryAction) {
     case MEDIA_INSERT: {
       const { mediaPath } = action.payload;
       const controlID = state.get('controlID');
+      const value = List.isList(state.get('value')) ? state.get('value').toArray() : state.get('value');
+
+      console.log(value, Array.isArray(value), List.isList(value), mediaPath)
+
+      if (!Array.isArray(value) && !List.isList(value)) {
+        return state.withMutations(map => {
+          map.setIn(['controlMedia', controlID], mediaPath);
+        });
+      }
+
+      const replaceIndex = state.get('replaceIndex')
+
+      if (replaceIndex != null) {
+        value[replaceIndex] = mediaPath
+      } else {
+        value.push(...(Array.isArray(mediaPath) ? mediaPath : [mediaPath]))
+      }
+
       return state.withMutations(map => {
-        map.setIn(['controlMedia', controlID], mediaPath);
+        map.setIn(['controlMedia', controlID], value);
       });
     }
 

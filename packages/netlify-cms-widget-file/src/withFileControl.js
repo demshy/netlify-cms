@@ -47,27 +47,28 @@ function Image(props) {
   return <StyledImage role="presentation" {...props} />;
 }
 
-function SortableImageButtons({ onRemove }) {
+function SortableImageButtons({ onRemove, onReplace }) {
   return (
     <SortableImageButtonsWrapper>
+      <IconButton size="small" type="media" onClick={onReplace}></IconButton>
       <IconButton size="small" type="close" onClick={onRemove}></IconButton>
     </SortableImageButtonsWrapper >
   )
 }
 
-const SortableImage = SortableElement(({ itemValue, getAsset, field, onRemove }) => {
+const SortableImage = SortableElement(({ itemValue, getAsset, field, onRemove, onReplace }) => {
   return (
     <div>
       <ImageWrapper sortable>
         <Image src={getAsset(itemValue, field) || ''} />
       </ImageWrapper>
-      <SortableImageButtons item={itemValue} onRemove={onRemove}></SortableImageButtons>
+      <SortableImageButtons item={itemValue} onRemove={onRemove} onReplace={onReplace}></SortableImageButtons>
     </div>
   );
 });
 
 
-const SortableMultiImageWrapper = SortableContainer(({ items, getAsset, field, onRemoveOne }) => {
+const SortableMultiImageWrapper = SortableContainer(({ items, getAsset, field, onRemoveOne, onReplaceOne }) => {
 
   return (
     <div
@@ -84,6 +85,7 @@ const SortableMultiImageWrapper = SortableContainer(({ items, getAsset, field, o
           getAsset={getAsset}
           field={field}
           onRemove={onRemoveOne(index)}
+          onReplace={onReplaceOne(index)}
         />
       ))}
     </div>
@@ -187,6 +189,7 @@ export default function withFileControl({ forImage } = {}) {
     componentDidUpdate() {
       const { mediaPaths, value, onRemoveInsertedMedia, onChange } = this.props;
       const mediaPath = mediaPaths.get(this.controlID);
+
       if (mediaPath && mediaPath !== value) {
         onChange(mediaPath);
       } else if (mediaPath && mediaPath === value) {
@@ -247,6 +250,32 @@ export default function withFileControl({ forImage } = {}) {
       return this.props.onChange([...value]);
     }
 
+    onReplaceOne = index => () => {
+      console.log(`Replace at index ${index}`)
+
+      const { field, onOpenMediaLibrary, value } = this.props;
+
+      let mediaLibraryFieldOptions;
+
+      if (field.hasIn(['options', 'media_library'])) {
+        warnDeprecatedOptions(field);
+        mediaLibraryFieldOptions = field.getIn(['options', 'media_library'], Map());
+      } else {
+        mediaLibraryFieldOptions = field.get('media_library', Map());
+      }
+
+      return onOpenMediaLibrary({
+        controlID: this.controlID,
+        forImage,
+        privateUpload: field.get('private'),
+        value,
+        replaceIndex: index,
+        allowMultiple: false,
+        config: mediaLibraryFieldOptions.get('config'),
+        field,
+      });
+    }
+
     onSortEnd = ({ oldIndex, newIndex }) => {
       const { value } = this.props;
       const newValue = arrayMove(value, oldIndex, newIndex);
@@ -304,6 +333,7 @@ export default function withFileControl({ forImage } = {}) {
             items={value}
             onSortEnd={this.onSortEnd}
             onRemoveOne={this.onRemoveOne}
+            onReplaceOne={this.onReplaceOne}
             distance={1}
             getAsset={getAsset}
             field={field}
