@@ -204,20 +204,7 @@ export default function withFileControl({ forImage } = {}) {
     handleChange = e => {
       const { field, onOpenMediaLibrary, value } = this.props;
       e.preventDefault();
-      let mediaLibraryFieldOptions;
-
-      /**
-       * `options` hash as a general field property is deprecated, only used
-       * when external media libraries were first introduced. Not to be
-       * confused with `options` for the select widget, which serves a different
-       * purpose.
-       */
-      if (field.hasIn(['options', 'media_library'])) {
-        warnDeprecatedOptions(field);
-        mediaLibraryFieldOptions = field.getIn(['options', 'media_library'], Map());
-      } else {
-        mediaLibraryFieldOptions = field.get('media_library', Map());
-      }
+      const mediaLibraryFieldOptions = this.getMediaLibraryFieldOptions();
 
       return onOpenMediaLibrary({
         controlID: this.controlID,
@@ -251,18 +238,8 @@ export default function withFileControl({ forImage } = {}) {
     }
 
     onReplaceOne = index => () => {
-      console.log(`Replace at index ${index}`)
-
       const { field, onOpenMediaLibrary, value } = this.props;
-
-      let mediaLibraryFieldOptions;
-
-      if (field.hasIn(['options', 'media_library'])) {
-        warnDeprecatedOptions(field);
-        mediaLibraryFieldOptions = field.getIn(['options', 'media_library'], Map());
-      } else {
-        mediaLibraryFieldOptions = field.get('media_library', Map());
-      }
+      const mediaLibraryFieldOptions = this.getMediaLibraryFieldOptions()
 
       return onOpenMediaLibrary({
         controlID: this.controlID,
@@ -274,6 +251,22 @@ export default function withFileControl({ forImage } = {}) {
         config: mediaLibraryFieldOptions.get('config'),
         field,
       });
+    }
+
+    getMediaLibraryFieldOptions = () => {
+      const { field } = this.props;
+
+      if (field.hasIn(['options', 'media_library'])) {
+        warnDeprecatedOptions(field);
+        return field.getIn(['options', 'media_library'], Map());
+      }
+
+      return field.get('media_library', Map());
+    }
+
+    allowsMultiple = () => {
+      const mediaLibraryFieldOptions = this.getMediaLibraryFieldOptions()
+      return mediaLibraryFieldOptions.get('config', false) && mediaLibraryFieldOptions.get('config').get('multiple', false);
     }
 
     onSortEnd = ({ oldIndex, newIndex }) => {
@@ -352,22 +345,28 @@ export default function withFileControl({ forImage } = {}) {
     };
 
     renderSelection = subject => {
-      const { t, field } = this.props;
+      const { t, field, value } = this.props;
+
+      // console.log(value)
+      // console.log(countValues(value))
+
+      const allowsMultiple = this.allowsMultiple();
+
       return (
         <div>
           {forImage ? this.renderImages() : null}
           <div>
             {forImage ? null : this.renderFileLinks()}
             <FileWidgetButton onClick={this.handleChange}>
-              {t(`editor.editorWidgets.${subject}.chooseDifferent`)}
+              {t(`editor.editorWidgets.${subject}.${this.allowsMultiple() ? 'addMore' : 'chooseDifferent'}`)}
             </FileWidgetButton>
-            {field.get('choose_url', true) ? (
+            {field.get('choose_url', true) && !this.allowsMultiple() ? (
               <FileWidgetButton onClick={this.handleUrl(subject)}>
                 {t(`editor.editorWidgets.${subject}.replaceUrl`)}
               </FileWidgetButton>
             ) : null}
             <FileWidgetButtonRemove onClick={this.handleRemove}>
-              {t(`editor.editorWidgets.${subject}.remove`)}
+              {t(`editor.editorWidgets.${subject}.remove${allowsMultiple ? 'All' : ''}`)}
             </FileWidgetButtonRemove>
           </div>
         </div>
@@ -376,10 +375,11 @@ export default function withFileControl({ forImage } = {}) {
 
     renderNoSelection = subject => {
       const { t, field } = this.props;
+
       return (
         <>
           <FileWidgetButton onClick={this.handleChange}>
-            {t(`editor.editorWidgets.${subject}.choose`)}
+            {t(`editor.editorWidgets.${subject}.choose${this.allowsMultiple() ? 'Multiple' : ''}`)}
           </FileWidgetButton>
           {field.get('choose_url', true) ? (
             <FileWidgetButton onClick={this.handleUrl(subject)}>
