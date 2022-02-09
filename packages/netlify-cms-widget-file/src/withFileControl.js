@@ -308,7 +308,7 @@ export default function withFileControl({ forImage } = {}) {
           <FileLinks>
             <FileLinkList>
               {value.map(val => (
-                <li key={val}>{this.renderFileLink(val)}aa</li>
+                <li key={val}>{this.renderFileLink(val)}</li>
               ))}
             </FileLinkList>
           </FileLinks>
@@ -345,10 +345,7 @@ export default function withFileControl({ forImage } = {}) {
     };
 
     renderSelection = subject => {
-      const { t, field, value } = this.props;
-
-      // console.log(value)
-      // console.log(countValues(value))
+      const { t, field } = this.props;
 
       const allowsMultiple = this.allowsMultiple();
 
