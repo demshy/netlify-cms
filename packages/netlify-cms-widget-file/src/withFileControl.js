@@ -234,7 +234,8 @@ export default function withFileControl({ forImage } = {}) {
     onRemoveOne = index => () => {
       const { value } = this.props;
       value.splice(index, 1)
-      return this.props.onChange([...value]);
+
+      return this.props.onChange(value.length > 0 ? [...value] : null);
     }
 
     onReplaceOne = index => () => {
@@ -390,6 +391,8 @@ export default function withFileControl({ forImage } = {}) {
     render() {
       const { value, classNameWrapper } = this.props;
       const subject = forImage ? 'image' : 'file';
+
+      console.log('render (value): ', value)
 
       return (
         <div className={classNameWrapper}>
